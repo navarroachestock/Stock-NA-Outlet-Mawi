@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Stock Navarro Ache</title>
+<style>
+:root{
+  --bg:#f4f2ee; --card:#ffffff; --ink:#1d1b18; --muted:#6f6a62; --line:#e4e0d8;
+  --accent:#8a5a2b; --ok:#1f7a4a; --okbg:#e3f3ea; --warn:#9a5b00; --warnbg:#fdf0d9;
+  --mid:#2f5f8a; --midbg:#e6eff8;
+  --off:#8b8680; --offbg:#efede9; --chip:#ebe7df; --no:#c0392b; --nobg:#fbe6e3;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#151413; --card:#201f1d; --ink:#f1eee9; --muted:#a39d94; --line:#34312d;
+    --accent:#d6a06a; --ok:#5fd394; --okbg:#173326; --warn:#f0b452; --warnbg:#3a2c12;
+    --mid:#8cc0f0; --midbg:#18283a;
+    --off:#8f8a83; --offbg:#2a2826; --chip:#2c2a27; --no:#ff7b6b; --nobg:#3a1a16; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-text-size-adjust:100%}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px 90px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 0 10px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+h1{font-size:20px;margin:0;letter-spacing:-.2px}
+h1 span{color:var(--accent)}
+.upd{font-size:12px;color:var(--muted);text-align:right}
+.search{position:relative;margin-top:10px}
+.search input{width:100%;font-size:18px;padding:14px 44px 14px 44px;border-radius:14px;
+  border:1.5px solid var(--line);background:var(--card);color:var(--ink);outline:none;-webkit-appearance:none}
+.search input:focus{border-color:var(--accent)}
+.search input::-webkit-search-cancel-button{display:none}
+.search .ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.search .clr{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;
+  color:var(--muted);font-size:24px;width:38px;height:38px;border-radius:50%;display:none}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.chip{border:0;background:var(--chip);color:var(--ink);padding:8px 12px;border-radius:999px;font-size:14px;white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--bg)}
+.chip[data-f=local]{background:var(--okbg);color:var(--ok);font-weight:700}
+.chip[data-f=dep]{background:var(--midbg);color:var(--mid);font-weight:700}
+.chip[data-f=mega]{background:var(--warnbg);color:var(--warn);font-weight:700}
+.chip[data-f=local].on{background:var(--ok);color:#fff}
+.chip[data-f=dep].on{background:var(--mid);color:#fff}
+.chip[data-f=mega].on{background:var(--warn);color:#fff}
+@media (prefers-color-scheme: dark){ .chip[data-f=local].on,.chip[data-f=dep].on,.chip[data-f=mega].on{color:#111} }
+.cats{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:6px 11px;border-radius:999px;font-size:13px;white-space:nowrap}
+.cat.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.nov{display:flex;align-items:center;gap:6px;width:100%;margin:2px 0 8px;border:0;border-radius:12px;padding:9px 12px;background:#fff4c2;color:#5c4400;font-size:13px;text-align:left}
+.nov span{flex:1}
+.nov i{font-style:normal;font-weight:700;text-decoration:underline}
+@media (prefers-color-scheme: dark){ .nov{background:#3a3110;color:#f3dc8a} }
+.nh{font-size:15px;margin:16px 0 6px}
+.nl{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px 10px;margin-top:5px;font-size:13px}
+.nl b{display:block;font-size:13.5px}
+.nl span{color:var(--muted);font-size:12px}
+.nl.off b{color:var(--off)}
+.badge{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:2px}
+.b-new{background:#e0edff;color:#1d4ed8}
+.b-pre{background:#efe3ff;color:#6b21a8}
+@media (prefers-color-scheme: dark){ .b-new{background:#17284a;color:#9cc2ff} .b-pre{background:#2e1a45;color:#d3b0ff} }
+.pch{font-size:12.5px;color:#6b21a8;margin-top:6px;font-weight:600}
+@media (prefers-color-scheme: dark){ .pch{color:#d3b0ff} }
+.st-ult{background:#fff1d6;color:#a15c00}
+.tag.t-ult{background:#a15c00 !important;color:#fff}
+.banner{margin:6px 0 10px;padding:10px 12px;border-radius:10px;font-size:13px;background:var(--warnbg);color:var(--warn)}
+.hint{color:var(--muted);text-align:center;padding:40px 10px;font-size:15px;line-height:1.5}
+.count{color:var(--muted);font-size:13px;margin:4px 2px 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.name{font-weight:700;font-size:17px;line-height:1.3}
+.code{font-size:12.5px;color:var(--muted);margin-top:3px}
+.disc{display:inline-block;font-size:11px;font-weight:700;background:var(--offbg);color:var(--off);padding:1px 6px;border-radius:5px;margin-left:4px;vertical-align:2px}
+.status{display:inline-block;margin:8px 6px 0 0;font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px}
+.st-ok{background:var(--okbg);color:var(--ok)}
+.st-warn{background:var(--warnbg);color:var(--warn)}
+.st-mid{background:var(--midbg);color:var(--mid)}
+.st-no{background:var(--nobg);color:var(--no)}
+.price{display:flex;gap:8px;margin-top:10px}
+.price div{flex:1;background:var(--chip);border-radius:10px;padding:8px 10px}
+.price b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
+.price span{font-size:12px;color:var(--muted)}
+.loc{display:grid;grid-template-columns:1fr auto;gap:2px 10px;border-radius:12px;padding:11px 12px;margin-top:8px}
+.loc .dep{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.loc .qty{font-size:22px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.loc .qty small{font-size:13px;font-weight:600;opacity:.75}
+.loc .det{font-size:13px;grid-column:1/-1;font-variant-numeric:tabular-nums;opacity:.85}
+.loc .lotes{font-size:12px;grid-column:1/-1;opacity:.75;margin-top:2px}
+.tag{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:6px;letter-spacing:.3px;background:rgba(255,255,255,.55)}
+@media (prefers-color-scheme: dark){ .tag{background:rgba(0,0,0,.25)} }
+.l-ok{background:var(--okbg);color:var(--ok)}
+.l-no{background:var(--nobg);color:var(--no)}
+.l-mid{background:var(--midbg);color:var(--mid)}
+.l-far{background:var(--warnbg);color:var(--warn)}
+.l-zero{background:var(--offbg);color:var(--off)}
+.ofin{font-size:12.5px;color:var(--ok);margin-top:6px;font-weight:600}
+.ofb{color:var(--ok);font-weight:800;white-space:nowrap}
+.price.offer div{background:var(--okbg)}
+.price.offer b{color:var(--ok)}
+.price s{display:block;opacity:.8;white-space:nowrap;font-size:12px}
+.addq{margin-top:10px;width:100%;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-weight:700;font-size:14px;padding:10px;border-radius:10px}
+.addq.in{border-style:solid;background:var(--chip)}
+.foot .in{gap:8px}
+#cotBtn{background:var(--accent);color:#fff}
+.ci{border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px}
+.ci .t{font-weight:700;font-size:14px;line-height:1.3}
+.ci .r{display:flex;align-items:center;gap:8px;margin-top:8px}
+.ci input{width:110px;font-size:18px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.ci .x{margin-left:auto;border:0;background:var(--nobg);color:var(--no);border-radius:8px;padding:8px 10px;font-weight:700}
+.ci .calc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45}
+.ci .calc b{color:var(--ink)}
+.pagos{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pg{border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 6px;font-size:13.5px;font-weight:600}
+.pg small{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.pg.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.pg.on small{color:#fff}
+.tl{display:flex;justify-content:space-between;font-size:14px;margin-top:6px;color:var(--muted)}
+.org{margin-top:8px}
+.orgt{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.orgl{display:flex;justify-content:space-between;border-radius:8px;padding:6px 10px;margin-top:4px;font-size:13px;font-weight:600}
+.orgn{font-size:12.5px;font-weight:600;color:var(--warn);margin-top:5px}
+.ci .warn{color:var(--no);font-weight:600}
+.cf{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.cf input{width:100%;font-size:16px;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.cf .full{grid-column:1/-1}
+.tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;padding-top:10px;border-top:2px solid var(--ink);font-size:16px}
+.tot b{font-size:24px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:10px}
+.chk input{width:20px;height:20px}
+.btn.wa{flex:1;font-size:16px;padding:14px;display:block;text-align:center;text-decoration:none;background:#1f9d55;color:#fff}
+.more{text-align:center;color:var(--muted);font-size:13px;padding:10px}
+.foot{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(transparent,var(--bg) 35%);padding:18px 14px 14px;pointer-events:none}
+.foot .in{max-width:640px;margin:0 auto;display:flex;justify-content:center}
+.foot .btn{pointer-events:auto}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-size:15px;font-weight:600;background:var(--accent);color:#fff}
+.btn.sec{background:var(--chip);color:var(--ink);box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.btn:disabled{opacity:.5}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}
+.modal.show{display:flex}
+.sheet{background:var(--card);width:100%;max-width:640px;border-radius:18px 18px 0 0;padding:18px 16px 22px;max-height:85vh;overflow:auto}
+.sheet h2{margin:0 0 10px;font-size:18px}
+.sheet p,.sheet li{font-size:14px;line-height:1.5;color:var(--ink)}
+.sheet .mut{color:var(--muted)}
+.sheet .row{display:flex;gap:10px;margin-top:14px}
+.sheet .row .btn{flex:1}
+.err{color:#c0392b}
+.bar{height:6px;background:var(--chip);border-radius:9px;overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+mark{background:transparent;color:var(--accent);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <h1>Stock <span>Navarro Ache</span></h1>
+      <div class="upd" id="upd">Cargando…</div>
+    </div>
+    <div class="search">
+      <svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" inputmode="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Producto, medida, marca, código u “oferta”">
+      <button class="clr" id="clr" aria-label="Borrar">×</button>
+    </div>
+    <div class="chips">
+      <button class="chip on" data-f="all">Todos</button>
+      <button class="chip" data-f="local">Mi local</button>
+      <button class="chip" data-f="dep">Depósito Mashwitz</button>
+      <button class="chip" data-f="mega">Dep Mega</button>
+    </div>
+    <div class="cats">
+      <button class="cat on" data-c="all">Todas</button><button class="cat" data-c="piso">Porcelanatos y cerámicos</button><button class="cat" data-c="grif">Grifería</button><button class="cat" data-c="sani">Sanitarios</button><button class="cat" data-c="peg">Pegamentos y accesorios</button><button class="cat" data-c="otros">Otros</button>
+    </div>
+  </header>
+  <button id="novBtn" class="nov" style="display:none"></button>
+  <div id="banner"></div>
+  <main id="list"><div class="hint">Cargando stock…</div></main>
+  <div id="src" style="text-align:center;font-size:12px;color:var(--muted);padding:6px 0 20px"></div>
+</div>
+
+<div class="foot"><div class="in">
+  <button class="btn sec" id="upBtn" style="display:none">⬆ Cargar Excel del día</button>
+  <button class="btn" id="cotBtn" style="display:none">🧾 Cotización</button>
+</div></div>
+<input type="file" id="file" accept=".xlsx,.xls,.csv" hidden>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script id="emb" type="application/json">/*EMB*/null</script>
+<script>
+/* ===== Ubicaciones =====
+   rank 0 = tu local (primero), 1 = depósito Mashwitz, 2 = Dep Mega (más lejos) */
+function depInfo(raw){
+  const d = norm(raw).replace(/[^a-z]/g,"");
+  if (d.includes("mega")) return {rank:2, name:"Dep Mega", tag:"MÁS LEJOS"};
+  if (d.startsWith("dep")) return {rank:1, name: d.includes("mash")||d.includes("masch") ? "Depósito Mashwitz" : pretty(raw), tag:"DEPÓSITO"};
+  if (d.includes("mash") || d.includes("masch") || d.includes("local")) return {rank:0, name:"Mi local (Mashwitz)", tag:"TU LOCAL"};
+  return {rank:1, name: pretty(raw) || "Sin ubicación", tag:""};
+}
+const LOCAL_NAME = "Mi local (Mashwitz)";
+const CATS = {piso:"Porcelanatos y cerámicos", grif:"Grifería", sani:"Sanitarios", peg:"Pegamentos y accesorios", otros:"Otros"};
+function categoria(p){
+  if (!p.unit) return "piso";
+  const m = norm(p.marca), n = norm(p.nombre);
+  if (/^insumos|administracion|cgpacheco/.test(m) || /^insumo/.test(n)) return "otros";
+  if (/home navarro/.test(m) || /desague/.test(n)) return "sani";
+  if (/studio prima/.test(m)) return "piso";
+  if (/piazza/.test(m)) return /bacha|banera isla|ba.era isla/.test(n) ? "sani" : "grif";
+  if (/^fv$|peirano|robinet|hidromet/.test(m)) return "grif";
+  if (/ferrum|^roca|pringles|lavaica|johnson/.test(m)) return "sani";
+  if (/saint gobain|abrasivos|moldumet|ilva|lourdes|rgo vision|alberdi|vite|lume/.test(m) || /weber|pastina|pegamento|nivelador|zocalo|guardacanto/.test(n)) return "peg";
+  return "otros";
+}
+const POCAS = p => p.unit ? 2 : 5;   // "últimas": hasta 5 cajas o 2 unidades en tu local
+const CHUNK = 450;          // filas por documento
+const MAX_SHOW = 50;        // resultados visibles
+
+/* ===== Utilidades ===== */
+const $ = s => document.querySelector(s);
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (n,d=2) => (n==null||isNaN(n)) ? "–" : Number(n).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:d});
+const money = n => "$ " + Number(n).toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pretty = s => String(s||"").toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()).trim();
+const fixName = s => String(s||"").replace(/¥/g,"Ñ").replace(/\\/g,"Ñ").replace(/\s+/g," ").trim();
+const DIM = /^[.\s]*(disc-)?\s*\d+([.,]\d+)?\s*x\s*\d+/i;
+const DIMANY = /(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)/i;
+function num(v){
+  if (v==null || v==="") return null;
+  if (typeof v==="number") return isFinite(v)?v:null;
+  let s = String(v).replace(/[^\d,.\-]/g,"");
+  if (!s) return null;
+  if (s.includes(",")) s = s.replace(/\./g,"").replace(",",".");
+  else if ((s.match(/\./g)||[]).length>1 || /^-?\d{1,3}\.\d{3}$/.test(s)) s = s.replace(/\./g,"");
+  const n = parseFloat(s); return isFinite(n)?n:null;
+}
+
+/* ===== Estado ===== */
+// fila: [nombre, codigo, ubicacion, metros, cajas/unidades, m2PorCaja, precio, precioCaja, lote, marca]
+const EMB = JSON.parse(document.getElementById("emb").textContent || "null");
+let limit = 50;
+let cat = "all";
+let rows = [], products = [], meta = null, filter = "all", db = null, canWrite = false;
+
+function buildProducts(){
+  const map = new Map();
+  for (const r of rows){
+    const [nombre, codigo, dep, m2, cajas, mc, pm, pc, lote, marca] = r;
+    const key = codigo ? "c:"+norm(codigo) : "n:"+norm(nombre);
+    let p = map.get(key);
+    if (!p){
+      p = {nombre, codigo, marca, mc, pm, pc, locs:new Map()};
+      map.set(key,p);
+    }
+    if (!p.mc && mc) p.mc = mc;
+    if (!p.pm && pm) p.pm = pm;
+    if (!p.pc && pc) p.pc = pc;
+    const info = depInfo(dep);
+    let l = p.locs.get(info.name);
+    if (!l){ l = {...info, m2:0, cajas:0, lotes:[]}; p.locs.set(info.name, l); }
+    l.m2 = Math.round((l.m2 + (m2||0))*100)/100; l.cajas = Math.round((l.cajas + (cajas||0))*100)/100;
+    if (lote) l.lotes.push({lote, cajas:cajas||0});
+  }
+  products = [...map.values()];
+  for (const p of products){
+    // Producto por unidad (grifería, sanitarios, pegamentos…): sin medida y 1 (o 0) m² por caja
+    p.unit = !DIMANY.test(p.nombre) || ((!p.mc || p.mc===1) && !DIM.test(p.nombre));
+    if (!p.unit && !p.pc && p.pm && p.mc) p.pc = Math.round(p.pm*p.mc*100)/100;
+    p.disc = /^[.\s]*disc-/i.test(p.nombre);
+    // placas por caja = m² por caja ÷ m² de una placa (solo si da entero con <2% de diferencia)
+    p.placas = null;
+    const dm = !p.unit && p.mc && p.nombre.match(DIMANY);
+    if (dm){ const pl = parseFloat(dm[1].replace(",","."))*parseFloat(dm[2].replace(",","."))/10000; const n = p.mc/pl, r = Math.round(n);
+      if (r>=1 && Math.abs(n-r)/r <= 0.02) p.placas = r; }
+    const of = EMB && EMB.ofertas && EMB.ofertas[p.codigo];
+    p.of = of ? {po: of.po, pct: of.pct, fin: of.fin, pc: (!p.unit && p.mc) ? Math.round(of.po*p.mc*100)/100 : null} : null;
+    p.locs = [...p.locs.values()].sort((a,b)=>a.rank-b.rank);
+    for (const l of p.locs){
+      // agrupar lotes repetidos
+      const m = new Map(); for (const x of l.lotes){ const k = x.lote.toUpperCase(); m.set(k,(m.get(k)||0)+x.cajas); }
+      l.lotes = [...m.entries()];
+    }
+    const has = l => l.cajas>0 || l.m2>0;
+    p.local = p.locs.some(l => l.rank===0 && has(l));
+    p.near = p.locs.some(l => l.rank===1 && has(l));
+    p.far = p.locs.some(l => l.rank===2 && has(l));
+    p.any = p.locs.some(has);
+    p.cat = categoria(p);
+    const nov = EMB && EMB.nov;
+    p.nuevo = !!(nov && nov.nuevos && nov.nuevos.includes(p.codigo));
+    p.cambio = nov && nov.precios ? nov.precios.find(x=>x.c===p.codigo) || null : null;
+    const lc = p.locs.filter(l=>l.rank===0).reduce((a,l)=>a+(l.cajas||0),0);
+    p.ultimas = lc>0 && lc<=POCAS(p) ? lc : 0;
+    p.s = norm([p.nombre, p.codigo, p.marca, p.of?"oferta ofertas":"", p.nuevo?"nuevo nuevos":""].join(" ")) + " " + norm(p.nombre).replace(/[.,]/g,"");
+  }
+}
+
+/* ===== Render ===== */
+function highlight(text, words){
+  const t = norm(text);
+  let best = null;
+  for (const w of words){ if (w.length<2) continue; const i = t.indexOf(w); if (i>=0 && (!best || w.length>best[1])) best=[i,w.length]; }
+  if (!best || t.length!==text.length) return esc(text);
+  const [i,n] = best;
+  return esc(text.slice(0,i)) + "<mark>" + esc(text.slice(i,i+n)) + "</mark>" + esc(text.slice(i+n));
+}
+function priceHtml(p){
+  if (p.of){
+    const was = p.pm ? `<s>${money(p.pm)}</s>` : "";
+    if (p.unit) return `<div class="price offer"><div><b>${money(p.of.po)}</b><span>oferta por unidad ${was}</span></div></div>`;
+    return `<div class="price offer"><div><b>${money(p.of.po)}</b><span>oferta por m² ${was}</span></div>${p.of.pc?`<div><b>${money(p.of.pc)}</b><span>oferta por caja${p.placas?` (${p.placas} placa${p.placas>1?"s":""})`:""} ${p.pc?`<s>${money(p.pc)}</s>`:""}</span></div>`:""}</div>`;
+  }
+  if (!p.pm) return `<div class="price"><div><b>Sin precio</b><span>consultar</span></div></div>`;
+  if (p.unit) return `<div class="price"><div><b>${money(p.pm)}</b><span>por unidad</span></div></div>`;
+  return `<div class="price"><div><b>${money(p.pm)}</b><span>por m²</span></div>${p.pc?`<div><b>${money(p.pc)}</b><span>por caja (${fmt(p.mc,3)} m²${p.placas?` · ${p.placas} placa${p.placas>1?"s":""}`:""})</span></div>`:""}</div>`;
+}
+function locHtml(p, l){
+  const zero = !(l.cajas>0 || l.m2>0);
+  let cls, icon = "";
+  if (l.rank===0){ cls = zero ? "l-no" : "l-ok"; icon = zero ? "✕ " : "✓ "; }
+  else if (zero) cls = "l-zero";
+  else cls = l.rank===2 ? "l-far" : "l-mid";
+  const tag = l.rank===0 && zero ? "SIN STOCK" : (l.rank===0 && p.ultimas ? (p.unit ? `ÚLTIMAS ${fmt(p.ultimas,0)} U.` : `ÚLTIMAS ${fmt(p.ultimas,0)} CAJAS`) : l.tag);
+  const qty = p.unit
+    ? `${fmt(l.cajas,0)} <small>u.</small>`
+    : `${fmt(l.m2)} <small>m²</small>`;
+  const det = zero ? (l.rank===0 ? "No hay en tu local" : "Sin stock")
+    : p.unit ? `${fmt(l.cajas,0)} ${l.cajas===1?"unidad":"unidades"}`
+    : `${fmt(l.cajas,0)} cajas · ${fmt(p.mc,3)} m² por caja · ${p.placas?`<b>${p.placas} placa${p.placas>1?"s":""} por caja</b>`:"placas por caja: consultar"}`;
+  const lotes = !zero && l.lotes.length ? `<div class="lotes">Lote${l.lotes.length>1?"s":""}: ${l.lotes.map(([k,c])=>`${esc(k)} (${fmt(c,0)}${p.unit?" u.":" cj"})`).join(" · ")}</div>` : "";
+  return `<div class="loc ${cls}">
+    <div class="dep">${icon}${esc(l.name)} ${tag?`<span class="tag${/^ÚLTIMAS/.test(tag)?" t-ult":""}">${tag}</span>`:""}</div>
+    <div class="qty">${zero?"0":qty}</div>
+    <div class="det">${det}</div>${lotes}</div>`;
+}
+function cardHtml(p, words){
+  let st;
+  if (p.local) st = `<span class="status st-ok">✓ Hay en tu local</span>${p.ultimas?`<span class="status st-ult">⚠ Últimas ${fmt(p.ultimas,0)} ${p.unit?"u.":p.ultimas===1?"caja":"cajas"} en tu local</span>`:""}`;
+  else {
+    st = `<span class="status st-no">✕ No hay en tu local</span>`;
+    if (p.near) st += `<span class="status st-mid">Hay en Depósito Mashwitz</span>`;
+    else if (p.far) st += `<span class="status st-warn">Hay en Dep Mega</span>`;
+  }
+  let locs = [...p.locs];
+  if (!locs.some(l=>l.rank===0)) locs.unshift({rank:0, name:LOCAL_NAME, tag:"TU LOCAL", m2:0, cajas:0, lotes:[]});
+  if (filter==="local"){ locs = locs.filter(l=>l.rank===0); st = `<span class="status st-ok">✓ Hay en tu local</span>`; }
+  if (filter==="dep"){ locs = locs.filter(l=>l.rank===1); st = `<span class="status st-mid">Hay en Depósito Mashwitz</span>`; }
+  if (filter==="mega"){ locs = locs.filter(l=>l.rank===2); st = `<span class="status st-warn">Hay en Dep Mega</span>`; }
+  return `<div class="card">
+    <div class="name">${highlight(p.nombre, words)}${p.of?` <span class="ofb">(OFERTA -${fmt(p.of.pct,1)}%)</span>`:""}${p.disc?`<span class="disc">DISCONTINUO</span>`:""}${p.nuevo?`<span class="badge b-new">NUEVO</span>`:""}${p.cambio?`<span class="badge b-pre">PRECIO ACTUALIZADO</span>`:""}</div>
+    <div class="code">Cód. ${esc(p.codigo||"–")}${p.marca?" · "+esc(p.marca):""}</div>
+    ${priceHtml(p)}${p.cambio?`<div class="pch">Precio anterior: ${money(p.cambio.a)} → ahora ${money(p.cambio.b)} (${p.cambio.b>p.cambio.a?"+":""}${fmt((p.cambio.b/p.cambio.a-1)*100,1)}%)</div>`:""}${p.of&&p.of.fin?`<div class="ofin">Oferta válida hasta el ${p.of.fin.slice(8,10)}/${p.of.fin.slice(5,7)}/${p.of.fin.slice(0,4)}</div>`:""}${st}${locs.map(l=>locHtml(p,l)).join("")}
+    ${p.pm||p.of?`<button class="addq${inCot(p.codigo)?" in":""}" data-code="${esc(p.codigo)}">${inCot(p.codigo)?"✓ En la cotización — ver":"+ Cotizar"}</button>`:""}</div>`;
+}
+function render(){
+  const raw = $("#q").value, q = norm(raw);
+  $("#clr").style.display = q ? "block" : "none";
+  const list = $("#list");
+  if (!rows.length){
+    list.innerHTML = `<div class="hint">Todavía no hay stock cargado.<br>${canWrite?"Tocá <b>Cargar Excel del día</b> abajo.":"Cuando se cargue el Excel va a aparecer acá."}</div>`;
+    return;
+  }
+  const words = q.split(/\s+/).filter(Boolean);
+  let res = products.filter(p => words.every(w => p.s.includes(w)));
+  if (filter==="local") res = res.filter(p => p.local);
+  if (filter==="dep") res = res.filter(p => p.near);
+  if (filter==="mega") res = res.filter(p => p.far);
+  if (filter==="all") res = res.filter(p => p.any);
+  if (cat!=="all") res = res.filter(p => p.cat===cat);
+  res.sort((a,b)=> (b.local-a.local) || (b.any-a.any) || (a.disc-b.disc) || a.nombre.localeCompare(b.nombre,"es"));
+  if (!res.length){ list.innerHTML = `<div class="hint">${q?`No encontré nada con “${esc(raw)}”.<br>Probá con menos palabras o solo la medida.`:"No hay productos con estos filtros."}</div>`; return; }
+  if (!q) res.sort((a,b)=> a.nombre.replace(/^[.\s]+/,"").localeCompare(b.nombre.replace(/^[.\s]+/,""),"es"));
+  const label = (cat!=="all" ? " · "+CATS[cat] : "") + (filter==="local" ? " en tu local" : filter==="mega" ? " en Dep Mega" : filter==="dep" ? " en Depósito Mashwitz" : "");
+  const shown = res.slice(0,limit);
+  list.innerHTML = `<div class="count">${res.length.toLocaleString("es-AR")} producto${res.length>1?"s":""}${label}${q?" para “"+esc(raw)+"”":""}</div>` + shown.map(p=>cardHtml(p,words)).join("")
+    + (res.length>limit?`<div class="more">Mostrando ${limit} de ${res.length.toLocaleString("es-AR")}<br><button class="btn sec" id="moreBtn" style="margin-top:8px">Ver más</button></div>`:"");
+  const mb = $("#moreBtn"); if (mb) mb.onclick = ()=>{ limit += MAX_SHOW; render(); };
+}
+function renderMeta(){
+  if (!meta){ $("#upd").textContent = rows.length?"":"Sin datos"; $("#banner").innerHTML=""; return; }
+  const d = new Date(meta.updatedAt);
+  const today = new Date().toDateString()===d.toDateString();
+  const when = (today?"hoy ":d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})+" ") + d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+  $("#upd").innerHTML = `Actualizado<br><b>${when}</b>`;
+  $("#src").textContent = meta.file ? "Fuente: " + meta.file : "";
+  let b = "";
+  if (meta.ejemplo) b = `<div class="banner">Estos son <b>datos de ejemplo</b>. Cargá tu Excel para ver el stock real.</div>`;
+  else if (!today) b = `<div class="banner">Ojo: el stock es del ${d.toLocaleDateString("es-AR")}. Todavía no se cargó el Excel de hoy.</div>`;
+  $("#banner").innerHTML = b;
+}
+
+/* ===== Eventos UI ===== */
+let t;
+$("#q").addEventListener("input", ()=>{ clearTimeout(t); t=setTimeout(()=>{ limit = MAX_SHOW; render(); },80); });
+$("#q").addEventListener("keydown", e=>{ if(e.key==="Enter") e.target.blur(); });
+$("#clr").onclick = ()=>{ $("#q").value=""; render(); $("#q").focus(); };
+document.querySelectorAll(".cat").forEach(c=>c.onclick=()=>{
+  document.querySelectorAll(".cat").forEach(x=>x.classList.toggle("on",x===c));
+  cat = c.dataset.c; limit = MAX_SHOW; render(); window.scrollTo(0,0);
+});
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+  document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===c));
+  filter = c.dataset.f; limit = MAX_SHOW; render(); window.scrollTo(0,0);
+});
+$("#upBtn").onclick = ()=> $("#file").click();
+$("#modal").addEventListener("click", e=>{ if(e.target.id==="modal" && !busy) closeModal(); });
+function openModal(html){ $("#sheet").innerHTML = html; $("#modal").classList.add("show"); }
+function closeModal(){ $("#modal").classList.remove("show"); }
+
+/* ===== Lectura del Excel ===== */
+function loadXLSX(){
+  return new Promise((ok,ko)=>{
+    if (window.XLSX) return ok(window.XLSX);
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = ()=>ok(window.XLSX); s.onerror = ()=>ko(new Error("No se pudo cargar el lector de Excel. Revisá la conexión."));
+    document.head.appendChild(s);
+  });
+}
+const KW_STRIP = /(m2|m²|mts2?|metros?( cuadrados)?|metraje|cajas?|cjs|bultos?|stock|cant(idad)?|disp(onible)?|en|de|x|por|\.|:|-|_|\(|\))/g;
+function classify(h){
+  const n = norm(h).replace(/²/g,"2");
+  if (!n) return null;
+  if (/(precio|valor|importe|\$|lista|pvp)/.test(n)) return {k: /(caja|cj)/.test(n) ? "pc" : "pm"};
+  if (/(cod|sku)/.test(n)) return {k:"codigo"};
+  if (/lote|partida|tono/.test(n)) return {k:"lote"};
+  if (/marca|proveedor|fabric/.test(n)) return {k:"marca"};
+  if (/(deposito|ubicacion|sucursal|almacen|lugar)/.test(n) && !/(m2|metro|caja)/.test(n)) return {k:"dep"};
+  if (/(m2|mts|metro).*(caja|cj)|(caja|cj).*(m2|mts|metro)|rendimiento|m2\/c/.test(n)) return {k:"mc"};
+  const rest = n.replace(KW_STRIP," ").replace(/\s+/g," ").trim();
+  if (/(m2|mts|metro|metraje)/.test(n)) return {k:"m2", dep: rest || null};
+  if (/(caja|cjs|bulto|disponible|unidades|cantidad)/.test(n)) return {k:"cajas", dep: rest || null};
+  if (/(producto|descr|nombre|articulo|detalle|modelo)/.test(n)) return {k:"nombre"};
+  return null;
+}
+function parseSheet(XLSX, wb){
+  let best = null;
+  for (const name of wb.SheetNames){
+    const a = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:"", raw:true});
+    if (!best || a.length > best.length) best = a;
+  }
+  const A = best || [];
+  let hi = -1, cols = null;
+  for (let i=0;i<Math.min(20,A.length);i++){
+    const c = A[i].map(classify);
+    if (c.some(x=>x&&x.k==="nombre") && c.some(x=>x&&(x.k==="m2"||x.k==="cajas"))){ hi=i; cols=c; break; }
+  }
+  if (hi<0) throw new Error("No encontré los encabezados. Necesito al menos una columna de Producto y una de Metros o Cajas.");
+  const idx = k => cols.findIndex(x=>x&&x.k===k);
+  const iN = idx("nombre"), iC = idx("codigo"), iD = idx("dep"), iMC = idx("mc"), iPM = idx("pm"), iPC = idx("pc"), iL = idx("lote"), iMa = idx("marca");
+  const m2cols = cols.map((x,i)=>x&&x.k==="m2"?{i,dep:x.dep}:null).filter(Boolean);
+  const cjcols = cols.map((x,i)=>x&&x.k==="cajas"?{i,dep:x.dep}:null).filter(Boolean);
+  const wide = iD<0 && (m2cols.length>1 || cjcols.length>1 || m2cols.some(c=>c.dep) || cjcols.some(c=>c.dep));
+  const out = []; let skipped = 0;
+  for (let r=hi+1;r<A.length;r++){
+    const row = A[r];
+    const nombre = fixName(row[iN]);
+    if (!nombre){ if (row.some(c=>c!=="" && c!=null)) skipped++; continue; }
+    const codigo = iC>=0 ? String(row[iC]??"").trim() : "";
+    const mc = iMC>=0 ? num(row[iMC]) : null;
+    const lote = iL>=0 ? String(row[iL]??"").trim() : "";
+    const marca = iMa>=0 ? String(row[iMa]??"").trim() : "";
+    let pm = iPM>=0 ? num(row[iPM]) : null, pc = iPC>=0 ? num(row[iPC]) : null;
+    if (!pm && pc && mc) pm = +(pc/mc).toFixed(2);
+    const push = (dep, m2, cj) => {
+      if (m2==null && cj!=null && mc) m2 = +(cj*mc).toFixed(2);
+      if (cj==null && m2!=null && mc) cj = +(m2/mc).toFixed(1);
+      out.push([nombre, codigo, dep, m2, cj, mc, pm||null, pc||null, lote, marca]);
+    };
+    if (wide){
+      const deps = new Map();
+      for (const c of m2cols){ const d=c.dep||"general"; deps.set(d,{...(deps.get(d)||{}), m2:num(row[c.i])}); }
+      for (const c of cjcols){ const d=c.dep||"general"; deps.set(d,{...(deps.get(d)||{}), cj:num(row[c.i])}); }
+      for (const [d,v] of deps) push(pretty(d), v.m2??null, v.cj??null);
+    } else {
+      const dep = iD>=0 ? String(row[iD]??"").trim() : "";
+      push(dep, m2cols.length?num(row[m2cols[0].i]):null, cjcols.length?num(row[cjcols[0].i]):null);
+    }
+  }
+  const found = ["Producto"]; if(iC>=0)found.push("Código"); if(iMa>=0)found.push("Marca"); if(iD>=0)found.push("Ubicación");
+  if(m2cols.length)found.push("Metros"); if(cjcols.length)found.push("Cajas/unidades"); if(iMC>=0)found.push("m² por caja");
+  if(iPM>=0)found.push("Precio"); if(iPC>=0)found.push("Precio caja"); if(iL>=0)found.push("Lote");
+  return {rows: out, found, wide, skipped};
+}
+
+let busy = false, pending = null, pendingName = "";
+$("#file").addEventListener("change", async e=>{
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  openModal(`<h2>Leyendo ${esc(f.name)}…</h2>`);
+  try{
+    const XLSX = await loadXLSX();
+    const wb = XLSX.read(await f.arrayBuffer(), {type:"array"});
+    const res = parseSheet(XLSX, wb);
+    if (!res.rows.length) throw new Error("El archivo no tiene filas de productos.");
+    pending = res.rows; pendingName = f.name;
+    const deps = new Map();
+    for (const r of res.rows){ const i = depInfo(r[2]); const o = deps.get(i.name)||{rank:i.rank, raw:r[2], n:0, m2:0, u:0};
+      o.n++; if (DIM.test(r[0]) || (r[5] && r[5]!==1)) o.m2 += r[3]||0; else o.u += r[4]||0; deps.set(i.name,o); }
+    const depList = [...deps.entries()].sort((a,b)=>a[1].rank-b[1].rank).map(([d,v])=>`<li><b>${esc(d)}</b> <span class="mut">(“${esc(v.raw)}”)</span> — ${v.n} filas · ${fmt(v.m2)} m² · ${fmt(v.u,0)} unidades</li>`).join("");
+    const sinPrecio = new Set(res.rows.filter(r=>!r[6]).map(r=>r[1]||r[0])).size;
+    const nProd = new Set(res.rows.map(r=>r[1]||r[0])).size;
+    openModal(`<h2>¿Reemplazo el stock con este Excel?</h2>
+      <p><b>${nProd.toLocaleString("es-AR")}</b> productos en <b>${res.rows.length.toLocaleString("es-AR")}</b> filas.</p>
+      <p class="mut">Columnas detectadas: ${res.found.join(", ")}</p>
+      <p>Control por ubicación (compará con tu sistema):</p><ul>${depList}</ul>
+      ${res.skipped?`<p class="mut">${res.skipped} filas sin nombre de producto no se cargan.</p>`:""}
+      ${sinPrecio?`<p class="mut">${sinPrecio} productos tienen precio 0 → van a decir “Sin precio”.</p>`:""}
+      ${!db?`<p class="err">No hay conexión con la base: el stock solo se va a ver en este dispositivo hasta que recargues.</p>`:""}
+      <div class="bar" id="bar" style="display:none"><i></i></div>
+      <div id="msg"></div>
+      <div class="row"><button class="btn sec" id="cancel">Cancelar</button><button class="btn" id="ok">Sí, actualizar</button></div>`);
+    $("#cancel").onclick = closeModal;
+    $("#ok").onclick = save;
+  }catch(err){
+    openModal(`<h2>No pude leer el archivo</h2><p class="err">${esc(err.message)}</p><div class="row"><button class="btn sec" id="cerrar">Cerrar</button></div>`);
+    $("#cerrar").onclick = closeModal;
+  }
+});
+
+async function save(){
+  if (!pending) return;
+  const data = pending;
+  if (!db){ rows = data; meta = {updatedAt: Date.now()}; buildProducts(); renderMeta(); render(); closeModal(); return; }
+  busy = true; $("#ok").disabled = $("#cancel").disabled = true;
+  $("#bar").style.display = "block";
+  const v = Date.now(), n = Math.ceil(data.length/CHUNK);
+  try{
+    for (let i=0;i<n;i++){
+      await db.doc("stock/p"+String(i).padStart(3,"0")).set({v, i, items: JSON.stringify(data.slice(i*CHUNK,(i+1)*CHUNK))});
+      $("#bar i").style.width = ((i+1)/(n+1)*100)+"%";
+    }
+    await db.doc("meta/info").set({v, chunks:n, count:data.length, updatedAt:v, ejemplo:false, file: pendingName});
+    const all = await db.collection("stock").get();
+    for (const d of all.docs){ const k = parseInt(d.id.slice(1),10); if (k>=n) await db.doc("stock/"+d.id).delete(); }
+    $("#bar i").style.width = "100%";
+    pending = null; busy = false; closeModal();
+    $("#q").value=""; filter="all"; document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x.dataset.f==="all"));
+  }catch(err){
+    busy = false;
+    $("#msg").innerHTML = `<p class="err">Error al guardar: ${esc(err.message||err.code)}. Probá de nuevo.</p>`;
+    $("#ok").disabled = $("#cancel").disabled = false;
+  }
+}
+
+/* ===== Novedades del día ===== */
+function renderNov(){
+  const nov = EMB && EMB.nov, b = $("#novBtn");
+  if (!nov){ b.style.display = "none"; return; }
+  const n = nov.nuevos.length, a = nov.agotados.length, pr = nov.precios.length;
+  const part = (k, s, pl) => k ? `${k} ${k===1?s:pl}` : "";
+  const txt = [part(n,"nuevo","nuevos"), part(a,"agotado","agotados"), pr ? part(pr,"cambio de precio","cambios de precio") : "sin cambios de precio"].filter(Boolean).join(" · ");
+  b.innerHTML = `📢 <b>Novedades</b> <span>${esc(txt)}</span><i>Ver</i>`; b.style.display = "flex";
+}
+function openNov(){
+  const nov = EMB.nov, byC = c => products.find(p=>p.codigo===c);
+  const li = (t, body) => `<h3 class="nh">${t}</h3>${body}`;
+  const nuevos = nov.nuevos.map(c=>{ const p = byC(c); return p ? `<button class="nl" data-go="${esc(c)}"><b>${esc(p.nombre)}</b><span>Cód. ${esc(c)} · ${p.local?"hay en tu local":p.near?"en Depósito Mashwitz":"en Dep Mega"}</span></button>` : ""; }).join("");
+  const agot = nov.agotados.map(x=>`<div class="nl off"><b>${esc(x.n)}</b><span>Cód. ${esc(x.c)}</span></div>`).join("");
+  const pre = nov.precios.map(x=>`<button class="nl" data-go="${esc(x.c)}"><b>${esc(x.n)}</b><span>${money(x.a)} → ${money(x.b)} (${x.b>x.a?"+":""}${fmt((x.b/x.a-1)*100,1)}%)</span></button>`).join("");
+  openModal(`<h2>📢 Novedades</h2><p class="mut" style="margin-top:-6px">Comparado con el stock del ${esc(nov.desde)}</p>
+    ${li(`🆕 Entraron (${nov.nuevos.length})`, nuevos || `<p class="mut">Ninguno.</p>`)}
+    ${li(`✕ Se agotaron (${nov.agotados.length})`, agot || `<p class="mut">Ninguno.</p>`)}
+    ${li(`💲 Cambios de precio (${nov.precios.length})`, pre || `<p class="mut">No cambió ningún precio.</p>`)}
+    <div class="row"><button class="btn sec" id="novClose">Cerrar</button></div>`);
+  $("#novClose").onclick = closeModal;
+  $("#sheet").querySelectorAll("[data-go]").forEach(b=> b.onclick = ()=>{ closeModal(); $("#q").value = b.dataset.go; filter="all"; cat="all";
+    document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x.dataset.f==="all")); document.querySelectorAll(".cat").forEach(x=>x.classList.toggle("on",x.dataset.c==="all")); render(); window.scrollTo(0,0); });
+}
+$("#novBtn").onclick = openNov;
+
+/* ===== Cotización ===== */
+let cot = {items:[], cliente:"", tel:"", vend:"", desp:false, pago:"efe", desc5:false};
+try{ const sv = JSON.parse(localStorage.getItem("na_cot")||"null"); if (sv) cot = Object.assign(cot, sv); }catch{}
+function saveCot(){ try{ localStorage.setItem("na_cot", JSON.stringify(cot)); }catch{} updCotBtn(); }
+function inCot(code){ return cot.items.some(i=>i.code===code); }
+function prodBy(code){ return products.find(p=>p.codigo===code); }
+function updCotBtn(){ const n = cot.items.length; const b = $("#cotBtn"); b.style.display = n ? "block" : "none"; b.textContent = `🧾 Cotización (${n})`; }
+const r2 = n => Math.round(n*100)/100;
+const PAGOS = {efe:"Efectivo / Transferencia", t1:"Débito o crédito 1 pago", t3:"Crédito 3 cuotas", t6:"Crédito 6 cuotas"};
+function puedeDesc5(){ return cot.pago==="efe" && cot.items.some(it=>{ const p = prodBy(it.code); return p && !p.of; }); }
+function ajuste(p){ // devuelve {f, txt}
+  if (cot.pago==="t3") return {f:1.15, txt:"+15% (3 cuotas)"};
+  if (cot.pago==="t6") return {f:1.25, txt:"+25% (6 cuotas)"};
+  if (cot.desc5 && puedeDesc5()) return p.of ? {f:1, txt:"oferta: sin 5% extra"} : {f:0.95, txt:"-5% efectivo/transferencia"};
+  return {f:1, txt:""};
+}
+function lineCalc(it){
+  const p = prodBy(it.code); if (!p) return null;
+  const q = Math.max(0, +String(it.q||"").replace(",",".") || 0);
+  const price = p.of ? p.of.po : p.pm;            // por m² o por unidad
+  const stockC = p.locs.reduce((a,l)=>a+(l.cajas||0),0), localC = p.locs.filter(l=>l.rank===0).reduce((a,l)=>a+(l.cajas||0),0);
+  const aj = ajuste(p), fin = sub => ({sub, aj, fin: r2(sub*aj.f)});
+  if (p.unit){ const n = Math.ceil(q-1e-9); return {p, unit:true, q, n, price, ...fin(r2(n*(price||0))), stockC, localC}; }
+  if (!p.mc) return {p, unit:false, q, cajas:null, m2:q, price, ...fin(r2(q*(price||0))), stockC, localC};
+  const want = cot.desp ? q*1.1 : q;
+  const cajas = Math.ceil(want/p.mc - 1e-9);
+  const pc = p.of ? p.of.pc : p.pc;
+  return {p, unit:false, q, want, cajas, m2: r2(cajas*p.mc), price, pc, ...fin(r2(cajas*(pc||0))), stockC, localC};
+}
+function calcHtml(c){
+  if (!c) return `<span class="warn">Este producto ya no está en el stock de hoy.</span>`;
+  if (!c.q) return `Escribí la cantidad.`;
+  const of = c.p.of ? ` <b style="color:var(--ok)">(OFERTA -${fmt(c.p.of.pct,1)}%)</b>` : "";
+  let h;
+  if (c.unit) h = `<b>${fmt(c.n,0)} u.</b> × ${money(c.price)}${of} = <b>${money(c.sub)}</b>`;
+  else if (c.cajas==null) h = `<b>${fmt(c.m2)} m²</b> × ${money(c.price)}${of} = <b>${money(c.sub)}</b>`;
+  else h = `${cot.desp?`${fmt(c.q)} m² + 10% = ${fmt(c.want)} m² → `:""}<b>${fmt(c.cajas,0)} cajas = ${fmt(c.m2)} m²</b>${c.p.placas?` (${fmt(c.cajas*c.p.placas,0)} placas)`:""}<br>${fmt(c.cajas,0)} × ${money(c.pc)} por caja${of} = <b>${money(c.sub)}</b>`;
+  if (c.aj.txt) h += `<br>${c.aj.f!==1?`${c.aj.txt}: <b>${money(c.fin)}</b>`:`<span style="color:var(--ok)">${c.aj.txt}</span>`}`;
+  const need = c.unit ? c.n : c.cajas;
+  if (need!=null) h += origenHtml(c.p, need, c.unit);
+  return h;
+}
+// Reparte lo pedido: primero Mi local, después Depósito Mashwitz, después Dep Mega
+function origen(p, need){
+  const out = []; let rest = need;
+  for (const rank of [0,1,2]){
+    const disp = p.locs.filter(l=>l.rank===rank).reduce((a,l)=>a+(l.cajas||0),0);
+    if (rest>0 && disp>0){ const take = Math.min(rest, disp); out.push({rank, take, disp}); rest = r2(rest-take); }
+  }
+  return {out, falta: rest>0 ? rest : 0};
+}
+function origenHtml(p, need, unit){
+  if (!need) return "";
+  const U = n => unit ? "u." : (n===1 ? "caja" : "cajas"), NAMES = ["Mi local","Depósito Mashwitz","Dep Mega"], CLS = ["l-ok","l-mid","l-far"];
+  const {out, falta} = origen(p, need);
+  let h = `<div class="org"><div class="orgt">De dónde sale:</div>`;
+  for (const o of out) h += `<div class="orgl ${CLS[o.rank]}"><span>${NAMES[o.rank]}</span><b>${fmt(o.take,0)} ${U(o.take)}</b></div>`;
+  const enMashwitz = out.some(o=>o.rank<2);
+  if (!out.length) h += `<div class="orgl l-no"><span>✕ No hay stock en ninguna ubicación</span></div>`;
+  else if (!enMashwitz) h += `<div class="orgn">⚠ No hay en tu local ni en el Depósito Mashwitz: sale todo de Dep Mega.</div>`;
+  if (falta>0) h += `<div class="orgl l-no"><span>✕ Faltan</span><b>${fmt(falta,0)} ${U(falta)}</b></div><div class="orgn" style="color:var(--no)">Stock insuficiente: hay ${fmt(need-falta,0)} ${U(need-falta)} en total.</div>`;
+  return h + `</div>`;
+}
+function cotBase(){ return r2(cot.items.reduce((a,it)=>{ const c = lineCalc(it); return a + (c?c.sub:0); },0)); }
+function cotTotal(){ return r2(cot.items.reduce((a,it)=>{ const c = lineCalc(it); return a + (c?c.fin:0); },0)); }
+function cuotasTxt(){ const n = cot.pago==="t3"?3:cot.pago==="t6"?6:0; return n ? `${n} cuotas de ${money(r2(cotTotal()/n))}` : ""; }
+function totHtml(){
+  const base = cotBase(), tot = cotTotal(), d = r2(tot-base);
+  let h = "";
+  if (d) h += `<div class="tl"><span>Subtotal</span><span>${money(base)}</span></div><div class="tl"><span>${d>0?"Recargo":"Descuento"} ${cot.pago==="t3"?"15%":cot.pago==="t6"?"25%":"5%"}</span><span>${d>0?"+ ":"− "}${money(Math.abs(d))}</span></div>`;
+  h += `<div class="tot"><span>Total<small style="display:block;font-size:12px;color:var(--muted)">${PAGOS[cot.pago]}</small></span><b style="white-space:nowrap">${money(tot)}</b></div>`;
+  if (cuotasTxt()) h += `<div class="tl" style="font-weight:700"><span></span><span>${cuotasTxt()}</span></div>`;
+  return h;
+}
+function waNum(t){
+  let d = String(t||"").replace(/\D/g,""); if (!d) return "";
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.startsWith("54")){ d = d.slice(2); if (d.startsWith("9")) d = d.slice(1); }
+  if (d.startsWith("0")) d = d.slice(1);
+  if (d.length===12 && /^1115/.test(d)) d = "11"+d.slice(4);
+  return "549"+d;
+}
+const hoy = () => new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"});
+function cotText(){
+  const L = [`*Presupuesto Navarro Ache* — ${hoy()}`];
+  if (cot.cliente) L.push(`Cliente: ${cot.cliente}`);
+  L.push("");
+  for (const it of cot.items){ const c = lineCalc(it); if (!c || !c.q) continue;
+    L.push(`• ${c.p.nombre}${c.p.of?` (OFERTA -${fmt(c.p.of.pct,1)}%)`:""}`);
+    if (c.unit) L.push(`  ${fmt(c.n,0)} u. × ${money(c.price)} = ${money(c.sub)}`);
+    else if (c.cajas==null) L.push(`  ${fmt(c.m2)} m² × ${money(c.price)} = ${money(c.sub)}`);
+    else L.push(`  ${fmt(c.cajas,0)} cajas (${fmt(c.m2)} m²) × ${money(c.pc)} = ${money(c.sub)}`);
+  }
+  const base = cotBase(), tot = cotTotal();
+  L.push("", `Forma de pago: ${PAGOS[cot.pago]}`);
+  if (tot!==base) L.push(`Subtotal: ${money(base)}`, `${tot>base?"Recargo":"Descuento"} ${cot.pago==="t3"?"15%":cot.pago==="t6"?"25%":"5%"}: ${money(Math.abs(r2(tot-base)))}`);
+  if (cot.desc5 && puedeDesc5() && cot.items.some(it=>{const c=lineCalc(it);return c&&c.q&&c.p.of;})) L.push(`(Los productos en oferta no tienen el 5% adicional)`);
+  L.push(`*TOTAL: ${money(tot)}*`);
+  if (cuotasTxt()) L.push(`*${cuotasTxt()}*`);
+  L.push("", `Precios vigentes al ${hoy()}, sujetos a modificación y a disponibilidad de stock.`);
+  if (cot.vend) L.push(`Atendido por: ${cot.vend}`);
+  return L.join("\n");
+}
+function loadScript(src){ return new Promise((ok,ko)=>{ const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>ko(new Error("No se pudo cargar "+src)); document.head.appendChild(s); }); }
+let pdfReady = null;
+function loadPDF(){
+  if (!pdfReady) pdfReady = (window.jspdf ? Promise.resolve() : loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"))
+    .then(()=> loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"))
+    .catch(e=>{ pdfReady = null; throw e; });
+  return pdfReady;
+}
+function buildPDF(){
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:"mm", format:"a4"});
+  const W = 210, brown = [138,90,43];
+  doc.setFillColor(...brown); doc.rect(0,0,W,28,"F");
+  doc.setTextColor(255); doc.setFont("helvetica","bold"); doc.setFontSize(22); doc.text("Navarro Ache", 14, 17);
+  doc.setFontSize(11); doc.setFont("helvetica","normal"); doc.text("Porcelanatos · Cerámicos · Sanitarios · Grifería", 14, 23);
+  doc.setFontSize(16); doc.setFont("helvetica","bold"); doc.text("PRESUPUESTO", W-14, 17, {align:"right"});
+  doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.text("Fecha: "+hoy(), W-14, 23, {align:"right"});
+  doc.setTextColor(30); let y = 38; doc.setFontSize(11);
+  if (cot.cliente){ doc.setFont("helvetica","bold"); doc.text("Cliente: ", 14, y); doc.setFont("helvetica","normal"); doc.text(cot.cliente, 32, y); y += 6; }
+  if (cot.tel){ doc.setFont("helvetica","bold"); doc.text("Teléfono: ", 14, y); doc.setFont("helvetica","normal"); doc.text(cot.tel, 35, y); y += 6; }
+  const body = [];
+  for (const it of cot.items){ const c = lineCalc(it); if (!c || !c.q) continue;
+    const name = c.p.nombre + (c.p.of?`\nOFERTA -${fmt(c.p.of.pct,1)}%${c.p.of.fin?` (hasta ${c.p.of.fin.slice(8,10)}/${c.p.of.fin.slice(5,7)})`:""}`:"") + `\nCód. ${c.p.codigo}`;
+    if (c.unit) body.push([name, `${fmt(c.n,0)} u.`, "-", `${money(c.price)} / u.`, money(c.sub)]);
+    else if (c.cajas==null) body.push([name, `${fmt(c.m2)} m²`, "-", `${money(c.price)} / m²`, money(c.sub)]);
+    else body.push([name, `${fmt(c.m2)} m²${c.p.placas?`\n${fmt(c.cajas*c.p.placas,0)} placas`:""}`, `${fmt(c.cajas,0)}\n(${fmt(c.p.mc,3)} m²/cj)`, `${money(c.price)} / m²\n${money(c.pc)} / caja`, money(c.sub)]);
+  }
+  const offRows = new Set(); body.forEach((r,i)=>{ if (/OFERTA -/.test(r[0])) offRows.add(i); });
+  for (const r of body) for (let k=0;k<r.length;k++) r[k] = String(r[k]).replace(/m²/g,"m2");
+  doc.autoTable({ startY: y+2, head:[["Producto","Cantidad","Cajas","Precio","Subtotal"]], body,
+    didParseCell: d=>{ if (d.section==="body" && offRows.has(d.row.index) && d.column.index>=3) d.cell.styles.textColor=[31,122,74]; },
+    styles:{fontSize:9.5, cellPadding:2.5, valign:"middle"}, headStyles:{fillColor:brown, textColor:255},
+    columnStyles:{0:{cellWidth:72},1:{halign:"right"},2:{halign:"center"},3:{halign:"right"},4:{halign:"right",fontStyle:"bold"}},
+    alternateRowStyles:{fillColor:[247,244,239]}, margin:{left:14,right:14} });
+  y = doc.lastAutoTable.finalY + 8;
+  doc.setFillColor(...brown); doc.rect(W-84, y-6, 70, 12, "F"); doc.setTextColor(255); doc.setFont("helvetica","bold"); doc.setFontSize(13);
+  doc.text("TOTAL  " + money(cotTotal()), W-17, y+1.8, {align:"right"});
+  doc.setTextColor(90); doc.setFont("helvetica","normal"); doc.setFontSize(9); y += 16;
+  const notes = [`Precios vigentes al ${hoy()}, sujetos a modificación y a disponibilidad de stock.`];
+  if (cot.desp) notes.push("Las cantidades incluyen un 10% adicional por cortes y desperdicio.");
+  notes.push("Los cerámicos y porcelanatos se venden por caja completa.");
+  if (cot.vend) notes.push(`Atendido por: ${cot.vend}`);
+  for (const n of notes){ doc.text(n, 14, y); y += 5; }
+  return doc;
+}
+function cotFileName(){ return `Presupuesto ${cot.cliente||"Navarro Ache"} ${hoy().replace(/\//g,"-")}.pdf`.replace(/[\\/:*?"<>|]/g,""); }
+function openCot(focusCode){
+  const items = cot.items.map((it,i)=>{ const c = lineCalc(it); const p = c&&c.p;
+    return `<div class="ci"><div class="t">${esc(p?p.nombre:it.code)}</div>
+      <div class="r"><input inputmode="decimal" data-i="${i}" value="${esc(it.q||"")}" placeholder="0"><span>${p&&p.unit?"unidades":"m²"}</span>
+      <button class="x" data-del="${i}">Quitar</button></div>
+      <div class="calc" id="calc${i}">${calcHtml(c)}</div></div>`; }).join("");
+  openModal(`<h2>🧾 Cotización</h2><div class="mut" id="cRes" style="font-size:13px;margin:-4px 0 6px"></div>
+    <div class="cf"><input class="full" id="cCli" placeholder="Nombre del cliente" value="${esc(cot.cliente)}">
+      <input id="cTel" inputmode="tel" placeholder="Teléfono (ej. 11 2345 6789)" value="${esc(cot.tel)}">
+      <input id="cVend" placeholder="Atendido por" value="${esc(cot.vend)}"></div>
+    ${items || `<p class="mut">Todavía no agregaste productos. Tocá “+ Cotizar” en un producto.</p>`}
+    ${cot.items.some(it=>{const c=lineCalc(it);return c&&!c.unit&&c.cajas!=null;})?`<label class="chk"><input type="checkbox" id="cDesp" ${cot.desp?"checked":""}> Agregar 10% por cortes y desperdicio</label>`:""}
+    <div class="orgt" style="margin-top:14px">Forma de pago</div>
+    <div class="pagos">${Object.entries(PAGOS).map(([k,v])=>`<button class="pg${cot.pago===k?" on":""}" data-pg="${k}">${v}${k==="t3"?"<small>+15%</small>":k==="t6"?"<small>+25%</small>":""}</button>`).join("")}</div>
+    <label class="chk" id="cD5w" style="display:${puedeDesc5()?"flex":"none"}"><input type="checkbox" id="cD5" ${cot.desc5?"checked":""}> Aplicar 5% de descuento (no aplica a ofertas)</label>
+    <div id="cTot">${totHtml()}</div>
+    <p class="mut" style="font-size:12px">Precios vigentes al ${hoy()}. Se redondea a cajas completas.</p>
+    <div class="row"><a class="btn wa" id="cWa" target="_blank" rel="noopener">Enviar por WhatsApp</a></div>
+    <div class="row"><button class="btn sec" id="cMore">+ Agregar productos</button><button class="btn sec" id="cClear">Vaciar</button></div>
+    <div id="cMsg"></div>`);
+  const refresh = ()=>{ cot.items.forEach((it,i)=>{ const el = $("#calc"+i); if (el) el.innerHTML = calcHtml(lineCalc(it)); });
+    if (!puedeDesc5()) cot.desc5 = false;
+    $("#cD5w").style.display = puedeDesc5() ? "flex" : "none"; $("#cD5").checked = cot.desc5;
+    $("#cTot").innerHTML = totHtml(); const n = waNum(cot.tel);
+    $("#cWa").href = `https://wa.me/${n}?text=${encodeURIComponent(cotText())}`;
+    $("#cWa").textContent = n ? `Enviar por WhatsApp a ${cot.tel.trim()}` : "Enviar por WhatsApp (elegís el contacto)";
+    $("#cRes").innerHTML = `${hoy()}${cot.cliente?` · Cliente: <b>${esc(cot.cliente)}</b>`:""}${cot.vend?` · Atendido por: <b>${esc(cot.vend)}</b>`:""} · ${PAGOS[cot.pago]}`;
+    saveCot(); };
+  $("#cWa").onclick = e=>{ if (!cot.items.some(it=>{const c=lineCalc(it);return c&&c.q;})){ e.preventDefault(); $("#cMsg").innerHTML = `<p class="err">Poné la cantidad de al menos un producto.</p>`; } };
+  $("#sheet").querySelectorAll("input[data-i]").forEach(inp=> inp.oninput = ()=>{ cot.items[+inp.dataset.i].q = inp.value; refresh(); });
+  $("#sheet").querySelectorAll("[data-del]").forEach(b=> b.onclick = ()=>{ cot.items.splice(+b.dataset.del,1); saveCot(); render(); openCot(); });
+  $("#cCli").oninput = e=>{ cot.cliente = e.target.value; refresh(); };
+  $("#cTel").oninput = e=>{ cot.tel = e.target.value; refresh(); };
+  $("#cVend").oninput = e=>{ cot.vend = e.target.value; refresh(); };
+  if ($("#cDesp")) $("#cDesp").onchange = e=>{ cot.desp = e.target.checked; refresh(); };
+  $("#sheet").querySelectorAll("[data-pg]").forEach(b=> b.onclick = ()=>{ cot.pago = b.dataset.pg; if (cot.pago!=="efe") cot.desc5 = false;
+    $("#sheet").querySelectorAll("[data-pg]").forEach(x=>x.classList.toggle("on", x===b));
+    refresh(); });
+  $("#cD5").onchange = e=>{ cot.desc5 = e.target.checked; refresh(); };
+  $("#cMore").onclick = ()=>{ closeModal(); $("#q").focus(); };
+  $("#cClear").onclick = ()=>{ if ($("#cClear").dataset.ok){ cot.items = []; cot.cliente = ""; cot.tel = ""; cot.desp = false; cot.pago = "efe"; cot.desc5 = false; saveCot(); render(); closeModal(); } else { $("#cClear").dataset.ok = 1; $("#cClear").textContent = "¿Seguro? Tocá de nuevo"; } };
+  refresh();
+  if (focusCode){ const i = cot.items.findIndex(x=>x.code===focusCode); const inp = $(`#sheet input[data-i="${i}"]`); if (inp) setTimeout(()=>inp.focus(),50); }
+}
+$("#list").addEventListener("click", e=>{
+  const b = e.target.closest(".addq"); if (!b) return;
+  const code = b.dataset.code;
+  if (!inCot(code)){ cot.items.push({code, q:""}); saveCot(); render(); }
+  openCot(code);
+});
+$("#cotBtn").onclick = ()=> openCot();
+
+/* ===== Conexión con la base ===== */
+async function loadStock(m){
+  if (!m || !m.chunks){ rows=[]; buildProducts(); render(); return; }
+  const snap = await db.collection("stock").get();
+  const parts = snap.docs.map(d=>d.data()).filter(d=>d && d.v===m.v).sort((a,b)=>a.i-b.i);
+  if (parts.length < m.chunks) return;
+  rows = parts.flatMap(p=>{ try{return JSON.parse(p.items)}catch{return []} });
+  buildProducts(); render();
+}
+function useEmbedded(){
+  if (!EMB) return false;
+  rows = EMB.rows; meta = {updatedAt: EMB.updatedAt, file: EMB.file};
+  buildProducts(); renderMeta(); render(); updCotBtn(); renderNov(); return true;
+}
+(async ()=>{
+  const hasEmb = useEmbedded();
+  const timer = setTimeout(()=>{ if(!meta && !rows.length){ $("#upd").textContent="Sin conexión"; $("#list").innerHTML=`<div class="hint">No pude conectar con el stock todavía. Revisá la conexión.</div>`; } }, 10000);
+  try{ db = await window.claude?.use("db"); }catch{ db = null; }
+  if (!db){ clearTimeout(timer); if (!hasEmb){ $("#upd").textContent="Sin datos"; render(); } return; }
+  try{
+    const user = await window.claude?.use("user");
+    if (user){ const c = await user.can?.("data.write"); canWrite = c===true; }
+  }catch{ canWrite = false; }
+  if (canWrite){ $("#upBtn").style.display="block"; if(!rows.length) render(); }
+  let lastV = null;
+  db.doc("meta/info").onSnapshot(async s=>{
+    clearTimeout(timer);
+    const m = s.exists ? s.data() : null;
+    // solo usar la base si tiene un stock más nuevo que el publicado
+    if (!m || m.ejemplo || (EMB && m.updatedAt <= EMB.updatedAt)) return;
+    meta = m; renderMeta();
+    if (m.v !== lastV){ lastV = m.v; try{ await loadStock(m); }catch(e){ console.log(e); } }
+  }, err=>{ clearTimeout(timer); console.log(err); });
+})();
+render();
+</script>
+</body>
+</html>
