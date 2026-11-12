@@ -4,6 +4,8 @@ Artifact: https://claude.ai/artifact/HWtWE49DwiRW59WWJ8AE3J (slug 85be873d-9e3d-
 
 Cada día Francisco manda STOCK-dd-mm-aaaa.xlsx (columnas: ar_codig, ar_descr, precio, marca, disponible, metros, mtsporcaja, lote, ubicacion) y a veces OFERTAS.xlsx (articulo, descripcio, cajas, vendidas, precionac, descuento, preoferta, disponibl, finaliza).
 
+IMPORTANTE (12-11): la versión MÁS NUEVA de pagina-template.html, build.js, ofertas.js y verify.js está en el repo GitHub navarroachestock/Stock-NA-Outlet-Mawi, carpeta /herramientas (la copia de pagina-template.html de este proyecto quedó vieja, del 05-11). Clonar el repo y usar esos archivos.
+
 Pasos:
 1. Copiar pagina-template.html a /home/claude/stock/index.html; build.js, ofertas.js y verify.js a /home/claude/tools; `npm i xlsx@0.18.5` en tools.
 2. `node build.js <stock.xlsx> <NombreArchivo.xlsx> [ofertas.xlsx]` → genera /home/claude/stock/dist/index.html con los datos incrustados.
