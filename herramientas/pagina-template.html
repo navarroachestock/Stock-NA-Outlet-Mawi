@@ -220,8 +220,19 @@ function categoria(p){
   if (/^(disc-\s*)?weber|pastina|pegamento|adhesivo/.test(n) && !/sellador/.test(n)) return "acomp";
   if (/nivelador.*(tornillo|tuerca)/.test(n)) return "acomp";
   // Insumos de colocación que se venden
-  if (/abrasivos|moldumet|lourdes|rgo vision/.test(m) || /sellador|zocalo|guardac|listel|omega|herramienta|caballete|nivelador/.test(n)) return "ins";
+  if (/abrasivos/.test(m) && !/silicona|sellador/.test(n)) return "otros";   // amoladora, discos, brocas, etc.
+  if (/moldumet|lourdes|rgo vision/.test(m) || /sellador|silicona|zocalo|guardac|listel|omega|herramienta|caballete|nivelador/.test(n)) return "ins";
   return "otros";
+}
+// Orden fijo de Acompañamiento: pegamentos en este orden, después pastinas, tornillos y tuercas
+const ACOMP_ORDEN = ["92-0021","92-0102","92-0126","92-0151","92-0143"];
+function acompRank(p){
+  const n = norm(p.nombre), i = ACOMP_ORDEN.indexOf(p.codigo);
+  if (i>=0) return i;
+  if (/tornillo/.test(n)) return 300;
+  if (/tuerca/.test(n)) return 301;
+  if (/color|pastina/.test(n)) return 200;
+  return 100;   // otros pegamentos
 }
 const POCAS = p => p.unit ? 2 : 5;   // "últimas": hasta 5 cajas o 2 unidades en tu local
 const CHUNK = 450;          // filas por documento
@@ -382,7 +393,8 @@ function render(){
   else if (cat!=="all") res = res.filter(p => p.cat===cat);
   res.sort((a,b)=> (b.local-a.local) || (b.any-a.any) || (a.disc-b.disc) || a.nombre.localeCompare(b.nombre,"es"));
   if (!res.length){ list.innerHTML = `<div class="hint">${q?`No encontré nada con “${esc(raw)}”.<br>Probá con menos palabras o solo la medida.`:"No hay productos con estos filtros."}</div>`; return; }
-  if (!q) res.sort((a,b)=> cat==="ofe" ? (b.of.pct-a.of.pct) || a.nombre.localeCompare(b.nombre,"es") : (a.disc-b.disc) || a.nombre.replace(/^[.\s]+/,"").localeCompare(b.nombre.replace(/^[.\s]+/,""),"es"));
+  if (!q && cat==="acomp") res.sort((a,b)=> (acompRank(a)-acompRank(b)) || (a.disc-b.disc) || a.nombre.localeCompare(b.nombre,"es"));
+  else if (!q) res.sort((a,b)=> cat==="ofe" ? (b.of.pct-a.of.pct) || a.nombre.localeCompare(b.nombre,"es") : (a.disc-b.disc) || a.nombre.replace(/^[.\s]+/,"").localeCompare(b.nombre.replace(/^[.\s]+/,""),"es"));
   const label = (cat!=="all" ? " · "+CATS[cat] : "") + (filter==="local" ? " en tu local" : filter==="mega" ? " en Dep Mega" : filter==="dep" ? " en Depósito Mashwitz" : "");
   const shown = res.slice(0,limit);
   list.innerHTML = `<div class="count">${res.length.toLocaleString("es-AR")} producto${res.length>1?"s":""}${label}${q?" para “"+esc(raw)+"”":""}</div>` + shown.map(p=>cardHtml(p,words)).join("")
