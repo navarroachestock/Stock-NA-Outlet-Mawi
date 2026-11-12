@@ -120,6 +120,11 @@ h1 span{color:var(--accent)}
 .pg.on small{color:#fff}
 .tl{display:flex;justify-content:space-between;font-size:14px;margin-top:6px;color:var(--muted)}
 .org{margin-top:8px}
+.lotw{margin-top:8px;border-radius:8px;padding:8px 10px;background:#fff1d6;color:#7a4500;font-size:12.5px;line-height:1.5}
+.lotw div{margin-top:3px}
+.lots{margin-top:5px !important;font-weight:600}
+.lot1{margin-top:6px;font-size:12.5px;color:var(--ok);font-weight:600}
+@media (prefers-color-scheme: dark){ .lotw{background:#3a2a10;color:#f0c98a} }
 .orgt{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px}
 .orgl{display:flex;justify-content:space-between;border-radius:8px;padding:6px 10px;margin-top:4px;font-size:13px;font-weight:600}
 .orgn{font-size:12.5px;font-weight:600;color:var(--warn);margin-top:5px}
@@ -172,7 +177,7 @@ mark{background:transparent;color:var(--accent);font-weight:800}
       <button class="chip" data-f="mega">Dep Mega</button>
     </div>
     <div class="cats">
-      <button class="cat on" data-c="all">Todas</button><button class="cat c-ofe" data-c="ofe">🏷️ Ofertas</button><button class="cat" data-c="piso">Porcelanatos y cerámicos</button><button class="cat" data-c="acomp">Acompañamiento</button><button class="cat" data-c="grif">Grifería</button><button class="cat" data-c="sani">Sanitarios</button><button class="cat" data-c="otros">Otros</button>
+      <button class="cat on" data-c="all">Todas</button><button class="cat c-ofe" data-c="ofe">🏷️ Ofertas</button><button class="cat" data-c="piso">Porcelanatos y cerámicos</button><button class="cat" data-c="acomp">Acompañamiento</button><button class="cat" data-c="ins">Insumos</button><button class="cat" data-c="grif">Grifería</button><button class="cat" data-c="sani">Sanitarios</button><button class="cat" data-c="otros">Otros</button>
     </div>
   </header>
   <button id="novBtn" class="nov" style="display:none"></button>
@@ -201,7 +206,7 @@ function depInfo(raw){
   return {rank:1, name: pretty(raw) || "Sin ubicación", tag:""};
 }
 const LOCAL_NAME = "Mi local (Mashwitz)";
-const CATS = {ofe:"Ofertas", piso:"Porcelanatos y cerámicos", acomp:"Acompañamiento", grif:"Grifería", sani:"Sanitarios", otros:"Otros"};
+const CATS = {ofe:"Ofertas", piso:"Porcelanatos y cerámicos", acomp:"Acompañamiento", ins:"Insumos", grif:"Grifería", sani:"Sanitarios", otros:"Otros"};
 function categoria(p){
   if (!p.unit) return "piso";
   const m = norm(p.marca), n = norm(p.nombre);
@@ -214,6 +219,8 @@ function categoria(p){
   // Acompañamiento: pegamento, pastina, tornillos y tuercas niveladores
   if (/^(disc-\s*)?weber|pastina|pegamento|adhesivo/.test(n) && !/sellador/.test(n)) return "acomp";
   if (/nivelador.*(tornillo|tuerca)/.test(n)) return "acomp";
+  // Insumos de colocación que se venden
+  if (/abrasivos|moldumet|lourdes|rgo vision/.test(m) || /sellador|zocalo|guardac|listel|omega|herramienta|caballete|nivelador/.test(n)) return "ins";
   return "otros";
 }
 const POCAS = p => p.unit ? 2 : 5;   // "últimas": hasta 5 cajas o 2 unidades en tu local
@@ -614,7 +621,7 @@ function calcHtml(c){
   else h = `${cot.desp?`${fmt(c.q)} m² + 10% = ${fmt(c.want)} m² → `:""}<b>${fmt(c.cajas,0)} cajas = ${fmt(c.m2)} m²</b>${c.p.placas?` (${fmt(c.cajas*c.p.placas,0)} placas)`:""}<br>${fmt(c.cajas,0)} × ${money(c.pc)} por caja${of} = <b>${money(c.sub)}</b>`;
   if (c.aj.txt) h += `<br>${c.aj.f!==1?`${c.aj.txt}: <b>${money(c.fin)}</b>`:`<span style="color:var(--ok)">${c.aj.txt}</span>`}`;
   const need = c.unit ? c.n : c.cajas;
-  if (need!=null) h += origenHtml(c.p, need, c.unit);
+  if (need!=null) h += origenHtml(c.p, need, c.unit) + lotesHtml(c.p, need);
   return h;
 }
 // Reparte lo pedido: primero Mi local, después Depósito Mashwitz, después Dep Mega
@@ -625,6 +632,27 @@ function origen(p, need){
     if (rest>0 && disp>0){ const take = Math.min(rest, disp); out.push({rank, take, disp}); rest = r2(rest-take); }
   }
   return {out, falta: rest>0 ? rest : 0};
+}
+// Reparte por lote (mismo orden de ubicaciones; dentro de cada una, primero el lote con más cajas)
+function lotesUsados(p, need){
+  const used = []; let rest = need;
+  for (const rank of [0,1,2]) for (const l of p.locs.filter(l=>l.rank===rank)){
+    for (const [k,c] of [...l.lotes].sort((a,b)=>b[1]-a[1])){
+      if (rest<=0) break; if (c<=0) continue;
+      const take = Math.min(rest, c); used.push({k, take, rank}); rest = r2(rest-take);
+    }
+  }
+  return used;
+}
+function lotesHtml(p, need){
+  if (p.unit || !need) return "";
+  const used = lotesUsados(p, need);
+  if (used.length<=1) return used.length ? `<div class="lot1">✓ Sale todo de un mismo lote (${esc(used[0].k)})</div>` : "";
+  const NAMES = ["Mi local","Dep. Mashwitz","Dep Mega"];
+  const uno = []; for (const rank of [0,1,2]) for (const l of p.locs.filter(l=>l.rank===rank)) for (const [k,c] of l.lotes) if (c>=need) uno.push({k,c,rank});
+  return `<div class="lotw"><b>⚠ Sale de ${used.length} lotes distintos</b> — puede haber diferencia de tono:
+    <div>${used.map(u=>`${esc(u.k)} · ${fmt(u.take,0)} ${u.take===1?"caja":"cajas"} (${NAMES[u.rank]})`).join("<br>")}</div>
+    ${uno.length?`<div class="lots">💡 Un solo lote alcanza: <b>${esc(uno[0].k)}</b> tiene ${fmt(uno[0].c,0)} cajas en ${NAMES[uno[0].rank]}${uno.length>1?` (y ${uno.length-1} lote${uno.length>2?"s":""} más)`:""}.</div>`:`<div class="lots">Ningún lote alcanza solo para todo el pedido.</div>`}</div>`;
 }
 function origenHtml(p, need, unit){
   if (!need) return "";
