@@ -50,6 +50,16 @@ h1 span{color:var(--accent)}
 .cat{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:6px 11px;border-radius:999px;font-size:13px;white-space:nowrap}
 .cat.c-ofe{border-color:var(--ok);color:var(--ok);font-weight:700}
 .cat.c-ofe.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.cat.c-merc{border-color:var(--mid);color:var(--mid);font-weight:700}
+.cat.c-merc.on{background:var(--mid);border-color:var(--mid);color:#fff}
+.mbig{display:flex;align-items:baseline;gap:8px;margin-top:10px;background:var(--midbg);color:var(--mid);border-radius:10px;padding:10px 12px}
+.mbig span{font-size:13px;font-weight:600}
+.mbig b{font-size:22px}
+.mbig small{margin-left:auto;font-size:13px;font-weight:700}
+.mdet{font-size:13px;color:var(--muted);margin-top:6px}
+.mo{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:4px;margin-top:4px}
+.mnote{font-size:12.5px;background:var(--midbg);color:var(--mid);border-radius:10px;padding:8px 10px;margin:0 0 10px}
+.st-off{background:var(--offbg);color:var(--off)}
 .cat.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .nov{display:flex;align-items:center;gap:6px;width:100%;margin:2px 0 8px;border:0;border-radius:12px;padding:9px 12px;background:#fff4c2;color:#5c4400;font-size:13px;text-align:left}
 .nov span{flex:1}
@@ -177,7 +187,7 @@ mark{background:transparent;color:var(--accent);font-weight:800}
       <button class="chip" data-f="mega">Dep Mega</button>
     </div>
     <div class="cats">
-      <button class="cat on" data-c="all">Todas</button><button class="cat c-ofe" data-c="ofe">🏷️ Ofertas</button><button class="cat" data-c="piso">Porcelanatos y cerámicos</button><button class="cat" data-c="acomp">Acompañamiento</button><button class="cat" data-c="grif">Grifería</button><button class="cat" data-c="sani">Sanitarios</button><button class="cat" data-c="ins">Insumos</button><button class="cat" data-c="otros">Otros</button>
+      <button class="cat on" data-c="all">Todas</button><button class="cat c-ofe" data-c="ofe">🏷️ Ofertas</button><button class="cat" data-c="piso">Porcelanatos y cerámicos</button><button class="cat" data-c="acomp">Acompañamiento</button><button class="cat" data-c="grif">Grifería</button><button class="cat" data-c="sani">Sanitarios</button><button class="cat" data-c="ins">Insumos</button><button class="cat" data-c="otros">Otros</button><button class="cat c-merc" data-c="merc">📦 Mercadería a recibir</button>
     </div>
   </header>
   <button id="novBtn" class="nov" style="display:none"></button>
@@ -384,6 +394,7 @@ function render(){
     return;
   }
   const words = q.split(/\s+/).filter(Boolean);
+  if (cat==="merc") return renderMerc(words, raw);
   let res = products.filter(p => words.every(w => p.s.includes(w)));
   if (filter==="local") res = res.filter(p => p.local);
   if (filter==="dep") res = res.filter(p => p.near);
@@ -566,6 +577,54 @@ async function save(){
     $("#msg").innerHTML = `<p class="err">Error al guardar: ${esc(err.message||err.code)}. Probá de nuevo.</p>`;
     $("#ok").disabled = $("#cancel").disabled = false;
   }
+}
+
+/* ===== Mercadería a recibir (solo se ve en su botón) ===== */
+let MERC = null;
+function buildMerc(){
+  const rows = (EMB && EMB.merc) || []; const map = new Map();
+  for (const [c,n,marca,f,comp,rec,cpr,rr,nro] of rows){
+    const k = c || n; let m = map.get(k);
+    if (!m){ m = {c, n, marca, ord:[], rr:0, comp:0, rec:0, cpr:0}; map.set(k,m); }
+    m.ord.push({f, nro, comp, rec, cpr, rr}); m.rr += rr; m.comp += comp; m.rec += rec; m.cpr += cpr;
+  }
+  const today = new Date().toISOString().slice(0,10);
+  MERC = [...map.values()].map(m=>{
+    const p = products.find(x=>x.codigo===m.c);
+    const unit = p ? p.unit : !DIMANY.test(m.n);
+    const mc = p && !p.unit ? p.mc : null;
+    const fechas = m.ord.map(o=>o.f).filter(Boolean).sort();
+    return {...m, p, unit, mc, f: fechas[0]||null, atrasada: m.ord.some(o=>o.f && o.f<today && o.rr>0),
+      cat: p ? p.cat : (unit ? "otros" : "piso"), s: norm([m.n, m.c, m.marca].join(" ")) + " " + norm(m.n).replace(/[.,]/g,"")};
+  }).filter(m=>m.rr>0);
+}
+const fFecha = f => f ? `${f.slice(8,10)}/${f.slice(5,7)}/${f.slice(0,4)}` : "";
+function mercCard(m, words){
+  const u = n => m.unit ? (n===1?"unidad":"unidades") : (n===1?"caja":"cajas");
+  const ent = m.atrasada ? `<span class="status st-no">⏰ Atrasada · era para el ${fFecha(m.ord.filter(o=>o.f).map(o=>o.f).sort()[0])}</span>`
+    : m.f ? `<span class="status st-mid">📅 Entrega: ${fFecha(m.f)}</span>` : `<span class="status st-off">Sin fecha confirmada</span>`;
+  const precio = m.p ? (m.p.of ? `${money(m.p.of.po)} ${m.unit?"por unidad":"por m²"} (oferta)` : m.p.pm ? `${money(m.p.pm)} ${m.unit?"por unidad":"por m²"}` : "") : "";
+  const stockHoy = m.p ? m.p.locs.reduce((a,l)=>a+(l.cajas||0),0) : 0;
+  const ords = m.ord.filter(o=>o.rr>0).map(o=>`<div class="mo"><span>Orden ${esc(o.nro.replace(/^0+/,""))||"–"} · ${o.f?fFecha(o.f):"sin fecha"}</span><b>${fmt(o.rr,0)} ${u(o.rr)}</b></div>`).join("");
+  return `<div class="card">
+    <div class="name">${highlight(m.n, words)}</div>
+    <div class="code">Cód. ${esc(m.c||"–")}${m.marca?" · "+esc(m.marca):""}</div>
+    <div class="mbig"><span>Llegan</span><b>${fmt(m.rr,0)} ${u(m.rr)}</b>${m.mc?`<small>${fmt(m.rr*m.mc)} m²</small>`:""}</div>
+    ${ent}
+    <div class="mdet">Comprado ${fmt(m.comp,0)} · ya recibido ${fmt(m.rec,0)}${m.cpr?` · <b>comprometido ${fmt(m.cpr,0)}</b>`:""}</div>
+    ${m.ord.filter(o=>o.rr>0).length>1?ords:""}
+    <div class="mdet">${m.p?`Hoy en stock: <b>${fmt(stockHoy,0)} ${u(stockHoy)}</b>`:"Hoy no hay stock de este producto"}${precio?` · ${precio}`:""}</div>
+  </div>`;
+}
+function renderMerc(words, raw){
+  if (!MERC) buildMerc();
+  const list = $("#list");
+  if (!EMB || !EMB.merc){ list.innerHTML = `<div class="hint">Todavía no se cargó la mercadería a recibir.</div>`; return; }
+  let res = MERC.filter(m => words.every(w => m.s.includes(w)));
+  res.sort((a,b)=> (b.atrasada-a.atrasada) || ((a.f||"9999")<(b.f||"9999")?-1:(a.f||"9999")>(b.f||"9999")?1:0) || a.n.localeCompare(b.n,"es"));
+  if (!res.length){ list.innerHTML = `<div class="hint">No hay mercadería a recibir${raw?` con “${esc(raw)}”`:""}.</div>`; return; }
+  list.innerHTML = `<div class="count">${res.length} producto${res.length>1?"s":""} · 📦 Mercadería a recibir${raw?" para “"+esc(raw)+"”":""}</div>
+    <div class="mnote">Esto todavía <b>no está en stock</b>: es lo que va a llegar y está libre para vender.</div>` + res.map(m=>mercCard(m,words)).join("");
 }
 
 /* ===== Novedades del día ===== */

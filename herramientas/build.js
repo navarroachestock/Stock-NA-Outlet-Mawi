@@ -7,6 +7,7 @@ const wb=XLSX.read(fs.readFileSync(process.argv[2]),{type:'buffer'});
 const res=parseSheet(XLSX,wb);
 const emb={rows:res.rows,updatedAt:Date.now(),file:process.argv[3]};
 if (process.argv[4]) emb.ofertas=require('./ofertas.js')(XLSX,process.argv[4],res.rows);
+emb.merc=require('./merc.js')(XLSX,process.argv[2]);
 // Novedades: node build.js <stock> <nombre> <ofertas> <stock_anterior> <fecha_anterior>
 if (process.argv[5]){
   const prev=parseSheet(XLSX,XLSX.read(fs.readFileSync(process.argv[5]),{type:'buffer'})).rows;
