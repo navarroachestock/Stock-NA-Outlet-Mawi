@@ -132,7 +132,8 @@ h1 span{color:var(--accent)}
 .pegw{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
 .pegc{display:block !important;margin-top:4px !important;font-size:13.5px;line-height:1.4}
 .pegc input{vertical-align:-4px;margin-right:6px}
-.pegc.losa{margin-left:28px;font-size:13px}
+.pgdo{display:flex;gap:16px;margin-left:28px}
+.pegc.losa{margin:4px 0 0 0 !important;font-size:13px}
 .pgos{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 2px 28px}
 .pgo{border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:6px 4px;font-size:12.5px;font-weight:600}
 .pgo small{display:block;font-size:11px;color:var(--muted);font-weight:500}
@@ -250,13 +251,11 @@ function categoria(p){
 const PEG = {porc:{code:"92-0102", txt:"porcelanato"}, cer:{code:"92-0021", txt:"cerámica"}};
 const M2_POR_BOLSA = 5;
 // Pegamento sugerido según formato y losa radiante
-function pegSugerido(p, losa){
+function pegSugerido(p, losa, ext){
   const d = p.nombre.match(DIMANY); const a = d ? parseFloat(d[1].replace(",",".")) : 0, b = d ? parseFloat(d[2].replace(",",".")) : 0;
-  const mn = Math.min(a,b), mx = Math.max(a,b);
-  if (mn && mn <= 30 && mx >= 90) return {code:"92-0126", por:"formato tipo tabla " + fmt(a,1) + "x" + fmt(b,1)};
-  if (mx > 60) return {code:"92-0151", por:"formato mayor a 60x60"};
-  if (losa) return {code:"92-0126", por:"losa radiante, formato hasta 60x60"};
-  const t = tipoPiso(p); return {code: PEG[t].code, por: PEG[t].txt};
+  const mx = Math.max(a,b), donde = [ext?"exterior":"", losa?"losa radiante":""].filter(Boolean).join(" / ");
+  if (ext || losa) return mx > 60 ? {code:"92-0151", por: donde + ", más de 60x60"} : {code:"92-0126", por: donde + ", hasta 60x60"};
+  const t = tipoPiso(p); return {code: PEG[t].code, por: t==="porc" ? "porcelanato de interior" : "cerámica de interior"};
 }
 const PEG_OPC = [["92-0021","Basic"],["92-0102","Pro Porcellanatos"],["92-0126","Flex"],["92-0151","Superflex"],["92-0143","Piso sobre piso"]];
 function tipoPiso(p){
@@ -774,7 +773,7 @@ function origenHtml(p, need, unit){
 function pegCalc(it){
   const p = prodBy(it.code); if (!p || p.unit) return null;
   const q = Math.max(0, +String(it.q||"").replace(",",".") || 0);
-  const tipo = tipoPiso(p), sug = pegSugerido(p, it.losa), code = it.pegCode || sug.code;
+  const tipo = tipoPiso(p), sug = pegSugerido(p, it.losa, it.ext), code = it.pegCode || sug.code;
   return {tipo, sug, code, bolsas: q ? Math.ceil(q/M2_POR_BOLSA - 1e-9) : 0, peg: prodBy(code)};
 }
 function virtuales(){
@@ -897,13 +896,14 @@ function openCot(focusCode){
     const opc = PEG_OPC.map(([c,t])=>{ const pp = prodBy(c); const pr = pp ? (pp.of ? pp.of.po : pp.pm) : null;
       return `<button class="pgo${c===pc.code?" on":""}" data-pgo="${i}" data-c="${c}">${t}${c===sug?" ★":""}<small>${pr?money(pr):"sin stock"}</small></button>`; }).join("");
     return `<label class="chk pegc"><input type="checkbox" data-peg="${i}" ${it.peg?"checked":""}> Agregar pegamento: <b>${pc.bolsas||"–"} ${pc.bolsas===1?"bolsa":"bolsas"}</b> ${esc(nom)}</label>
-      ${it.peg?`<label class="chk pegc losa"><input type="checkbox" data-losa="${i}" ${it.losa?"checked":""}> Va sobre losa radiante</label><div class="pgos">${opc}</div>`:""}
+      ${it.peg?`<div class="pgdo"><label class="chk pegc losa"><input type="checkbox" data-ext="${i}" ${it.ext?"checked":""}> Exterior</label><label class="chk pegc losa"><input type="checkbox" data-losa="${i}" ${it.losa?"checked":""}> Losa radiante</label></div><div class="pgos">${opc}</div>`:""}
       <div class="pegs">★ Sugerido: ${esc((PEG_OPC.find(x=>x[0]===sug)||[])[1]||"")} (${esc(pc.sug.por)}) · 1 bolsa cada ${M2_POR_BOLSA} m²${!pc.peg?` · <span class="warn">ese pegamento no figura en el stock de hoy</span>`:""}</div>`; };
   const virtHtml = ()=>{ const v = virtuales(); if (!v.length) return "";
     return `<div class="orgt" style="margin-top:12px">Pegamento calculado</div>` + v.map(it=>{ const c = lineCalc(it);
       return `<div class="ci virt"><div class="t">${esc(c?c.p.nombre:it.code)}</div><div class="calc">${c?calcHtml(c):`<span class="warn">No figura en el stock de hoy.</span>`}</div></div>`; }).join(""); };
   const bindPeg = ()=>{ $("#sheet").querySelectorAll("[data-peg]").forEach(cb=> cb.onchange = ()=>{ cot.items[+cb.dataset.peg].peg = cb.checked; refresh(); });
     $("#sheet").querySelectorAll("[data-losa]").forEach(cb=> cb.onchange = ()=>{ const it = cot.items[+cb.dataset.losa]; it.losa = cb.checked; delete it.pegCode; refresh(); });
+    $("#sheet").querySelectorAll("[data-ext]").forEach(cb=> cb.onchange = ()=>{ const it = cot.items[+cb.dataset.ext]; it.ext = cb.checked; delete it.pegCode; refresh(); });
     $("#sheet").querySelectorAll("[data-pgo]").forEach(b=> b.onclick = e=>{ e.preventDefault(); cot.items[+b.dataset.pgo].pegCode = b.dataset.c; refresh(); }); };
   const refresh = ()=>{ cot.items.forEach((it,i)=>{ const el = $("#calc"+i); if (el) el.innerHTML = calcHtml(lineCalc(it)); const pe = $("#peg"+i); if (pe) pe.innerHTML = pegHtml(it,i); });
     $("#cVirt").innerHTML = virtHtml(); bindPeg();
