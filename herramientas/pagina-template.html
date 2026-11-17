@@ -132,6 +132,11 @@ h1 span{color:var(--accent)}
 .pegw{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
 .pegc{display:block !important;margin-top:4px !important;font-size:13.5px;line-height:1.4}
 .pegc input{vertical-align:-4px;margin-right:6px}
+.pgos{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 2px 28px}
+.pgo{border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:6px 4px;font-size:12.5px;font-weight:600}
+.pgo small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.pgo.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.pgo.on small{color:#fff}
 .pegs{font-size:12px;color:var(--muted);margin:2px 0 0 28px}
 .pegs a{color:var(--accent);font-weight:700}
 .ci.virt{background:var(--chip);border-style:dashed}
@@ -243,6 +248,7 @@ function categoria(p){
 // Porcelanato o cerámica (para sugerir pegamento). Se puede cambiar a mano en la cotización.
 const PEG = {porc:{code:"92-0102", txt:"porcelanato"}, cer:{code:"92-0021", txt:"cerámica"}};
 const M2_POR_BOLSA = 5;
+const PEG_OPC = [["92-0021","Basic"],["92-0102","Pro Porcellanatos"],["92-0126","Flex"],["92-0151","Superflex"],["92-0143","Piso sobre piso"]];
 function tipoPiso(p){
   const m = norm(p.marca), n = norm(p.nombre);
   if (/porcel/.test(n)) return "porc";
@@ -758,7 +764,7 @@ function origenHtml(p, need, unit){
 function pegCalc(it){
   const p = prodBy(it.code); if (!p || p.unit) return null;
   const q = Math.max(0, +String(it.q||"").replace(",",".") || 0);
-  const tipo = it.tipo || tipoPiso(p), code = PEG[tipo].code;
+  const tipo = tipoPiso(p), code = it.pegCode || PEG[tipo].code;
   return {tipo, code, bolsas: q ? Math.ceil(q/M2_POR_BOLSA - 1e-9) : 0, peg: prodBy(code)};
 }
 function virtuales(){
@@ -877,13 +883,17 @@ function openCot(focusCode){
     <div id="cMsg"></div>`);
   const pegHtml = (it,i)=>{ const pc = pegCalc(it); if (!pc) return "";
     const nom = pc.peg ? pc.peg.nombre : (pc.tipo==="porc"?"Weber Pro Porcellanatos":"Weber Basic");
+    const sug = PEG[pc.tipo].code;
+    const opc = PEG_OPC.map(([c,t])=>{ const pp = prodBy(c); const pr = pp ? (pp.of ? pp.of.po : pp.pm) : null;
+      return `<button class="pgo${c===pc.code?" on":""}" data-pgo="${i}" data-c="${c}">${t}${c===sug?" ★":""}<small>${pr?money(pr):"sin stock"}</small></button>`; }).join("");
     return `<label class="chk pegc"><input type="checkbox" data-peg="${i}" ${it.peg?"checked":""}> Agregar pegamento: <b>${pc.bolsas||"–"} ${pc.bolsas===1?"bolsa":"bolsas"}</b> ${esc(nom)}</label>
-      <div class="pegs">Es <b>${PEG[pc.tipo].txt}</b> (1 bolsa cada ${M2_POR_BOLSA} m²) · <a href="#" data-tipo="${i}">cambiar a ${pc.tipo==="porc"?"cerámica":"porcelanato"}</a>${!pc.peg?` · <span class="warn">ese pegamento no figura en el stock de hoy</span>`:""}</div>`; };
+      ${it.peg?`<div class="pgos">${opc}</div>`:""}
+      <div class="pegs">★ Sugerido para ${PEG[pc.tipo].txt} · 1 bolsa cada ${M2_POR_BOLSA} m²${!pc.peg?` · <span class="warn">ese pegamento no figura en el stock de hoy</span>`:""}</div>`; };
   const virtHtml = ()=>{ const v = virtuales(); if (!v.length) return "";
     return `<div class="orgt" style="margin-top:12px">Pegamento calculado</div>` + v.map(it=>{ const c = lineCalc(it);
       return `<div class="ci virt"><div class="t">${esc(c?c.p.nombre:it.code)}</div><div class="calc">${c?calcHtml(c):`<span class="warn">No figura en el stock de hoy.</span>`}</div></div>`; }).join(""); };
   const bindPeg = ()=>{ $("#sheet").querySelectorAll("[data-peg]").forEach(cb=> cb.onchange = ()=>{ cot.items[+cb.dataset.peg].peg = cb.checked; refresh(); });
-    $("#sheet").querySelectorAll("[data-tipo]").forEach(a=> a.onclick = e=>{ e.preventDefault(); const it = cot.items[+a.dataset.tipo]; const pc = pegCalc(it); it.tipo = pc.tipo==="porc"?"cer":"porc"; refresh(); }); };
+    $("#sheet").querySelectorAll("[data-pgo]").forEach(b=> b.onclick = e=>{ e.preventDefault(); cot.items[+b.dataset.pgo].pegCode = b.dataset.c; refresh(); }); };
   const refresh = ()=>{ cot.items.forEach((it,i)=>{ const el = $("#calc"+i); if (el) el.innerHTML = calcHtml(lineCalc(it)); const pe = $("#peg"+i); if (pe) pe.innerHTML = pegHtml(it,i); });
     $("#cVirt").innerHTML = virtHtml(); bindPeg();
     if (!puedeDesc5()) cot.desc5 = false;
