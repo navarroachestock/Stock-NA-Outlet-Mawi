@@ -129,6 +129,12 @@ h1 span{color:var(--accent)}
 .pg.on{border-color:var(--accent);background:var(--accent);color:#fff}
 .pg.on small{color:#fff}
 .tl{display:flex;justify-content:space-between;font-size:14px;margin-top:6px;color:var(--muted)}
+.pegw{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+.pegc{display:block !important;margin-top:4px !important;font-size:13.5px;line-height:1.4}
+.pegc input{vertical-align:-4px;margin-right:6px}
+.pegs{font-size:12px;color:var(--muted);margin:2px 0 0 28px}
+.pegs a{color:var(--accent);font-weight:700}
+.ci.virt{background:var(--chip);border-style:dashed}
 .org{margin-top:8px}
 .lotw{margin-top:8px;border-radius:8px;padding:8px 10px;background:#fff1d6;color:#7a4500;font-size:12.5px;line-height:1.5}
 .lotw div{margin-top:3px}
@@ -233,6 +239,17 @@ function categoria(p){
   if (/abrasivos/.test(m) && !/silicona|sellador/.test(n)) return "otros";   // amoladora, discos, brocas, etc.
   if (/moldumet|lourdes|rgo vision/.test(m) || /sellador|silicona|zocalo|guardac|listel|omega|herramienta|caballete|nivelador/.test(n)) return "ins";
   return "otros";
+}
+// Porcelanato o cerámica (para sugerir pegamento). Se puede cambiar a mano en la cotización.
+const PEG = {porc:{code:"92-0102", txt:"porcelanato"}, cer:{code:"92-0021", txt:"cerámica"}};
+const M2_POR_BOLSA = 5;
+function tipoPiso(p){
+  const m = norm(p.marca), n = norm(p.nombre);
+  if (/porcel/.test(n)) return "porc";
+  if (/vite|ilva|cerro negro|san lzo|cedasa/.test(m) || /\bspl\b|ccnn|slzo/.test(n)) return "porc";
+  if (/gabriella|karina|beijing|baseng|acuar|mosaicos/.test(m)) return "cer";
+  const d = p.nombre.match(DIMANY); const mx = d ? Math.max(parseFloat(d[1].replace(",",".")), parseFloat(d[2].replace(",","."))) : 0;
+  return mx >= 60 ? "porc" : "cer";
 }
 // Orden fijo de Acompañamiento: pegamentos en este orden, después pastinas, tornillos y tuercas
 const ACOMP_ORDEN = ["92-0021","92-0102","92-0126","92-0151","92-0143"];
@@ -662,7 +679,7 @@ function prodBy(code){ return products.find(p=>p.codigo===code); }
 function updCotBtn(){ const n = cot.items.length; const b = $("#cotBtn"); b.style.display = n ? "block" : "none"; b.textContent = `🧾 Cotización (${n})`; }
 const r2 = n => Math.round(n*100)/100;
 const PAGOS = {efe:"Efectivo / Transferencia", t1:"Débito o crédito 1 pago", t3:"Crédito 3 cuotas", t6:"Crédito 6 cuotas"};
-function puedeDesc5(){ return cot.pago==="efe" && cot.items.some(it=>{ const p = prodBy(it.code); return p && !p.of; }); }
+function puedeDesc5(){ return cot.pago==="efe" && todos().some(it=>{ const p = prodBy(it.code); return p && !p.of; }); }
 function ajuste(p){ // devuelve {f, txt}
   if (cot.pago==="t3") return {f:1.15, txt:"+15% (3 cuotas)"};
   if (cot.pago==="t6") return {f:1.25, txt:"+25% (6 cuotas)"};
@@ -687,7 +704,8 @@ function calcHtml(c){
   if (!c.q) return `Escribí la cantidad.`;
   const of = c.p.of ? ` <b style="color:var(--ok)">(OFERTA -${fmt(c.p.of.pct,1)}%)</b>` : "";
   let h;
-  if (c.unit) h = `<b>${fmt(c.n,0)} u.</b> × ${money(c.price)}${of} = <b>${money(c.sub)}</b>`;
+  const ul = /^(disc-)?weber/.test(norm(c.p.nombre)) ? (c.n===1?" bolsa":" bolsas") : " u.";
+  if (c.unit) h = `<b>${fmt(c.n,0)}${ul}</b> × ${money(c.price)}${of} = <b>${money(c.sub)}</b>`;
   else if (c.cajas==null) h = `<b>${fmt(c.m2)} m²</b> × ${money(c.price)}${of} = <b>${money(c.sub)}</b>`;
   else h = `${cot.desp?`${fmt(c.q)} m² + 10% = ${fmt(c.want)} m² → `:""}<b>${fmt(c.cajas,0)} cajas = ${fmt(c.m2)} m²</b>${c.p.placas?` (${fmt(c.cajas*c.p.placas,0)} placas)`:""}<br>${fmt(c.cajas,0)} × ${money(c.pc)} por caja${of} = <b>${money(c.sub)}</b>`;
   if (c.aj.txt) h += `<br>${c.aj.f!==1?`${c.aj.txt}: <b>${money(c.fin)}</b>`:`<span style="color:var(--ok)">${c.aj.txt}</span>`}`;
@@ -737,8 +755,21 @@ function origenHtml(p, need, unit){
   if (falta>0) h += `<div class="orgl l-no"><span>✕ Faltan</span><b>${fmt(falta,0)} ${U(falta)}</b></div><div class="orgn" style="color:var(--no)">Stock insuficiente: hay ${fmt(need-falta,0)} ${U(need-falta)} en total.</div>`;
   return h + `</div>`;
 }
-function cotBase(){ return r2(cot.items.reduce((a,it)=>{ const c = lineCalc(it); return a + (c?c.sub:0); },0)); }
-function cotTotal(){ return r2(cot.items.reduce((a,it)=>{ const c = lineCalc(it); return a + (c?c.fin:0); },0)); }
+function pegCalc(it){
+  const p = prodBy(it.code); if (!p || p.unit) return null;
+  const q = Math.max(0, +String(it.q||"").replace(",",".") || 0);
+  const tipo = it.tipo || tipoPiso(p), code = PEG[tipo].code;
+  return {tipo, code, bolsas: q ? Math.ceil(q/M2_POR_BOLSA - 1e-9) : 0, peg: prodBy(code)};
+}
+function virtuales(){
+  const m = new Map();
+  for (const it of cot.items){ if (!it.peg) continue; const pc = pegCalc(it); if (!pc || !pc.bolsas) continue;
+    m.set(pc.code, (m.get(pc.code)||0) + pc.bolsas); }
+  return [...m.entries()].map(([code,q])=>({code, q:String(q), virtual:true}));
+}
+const todos = () => [...cot.items, ...virtuales()];
+function cotBase(){ return r2(todos().reduce((a,it)=>{ const c = lineCalc(it); return a + (c?c.sub:0); },0)); }
+function cotTotal(){ return r2(todos().reduce((a,it)=>{ const c = lineCalc(it); return a + (c?c.fin:0); },0)); }
 function cuotasTxt(){ const n = cot.pago==="t3"?3:cot.pago==="t6"?6:0; return n ? `${n} cuotas de ${money(r2(cotTotal()/n))}` : ""; }
 function totHtml(){
   const base = cotBase(), tot = cotTotal(), d = r2(tot-base);
@@ -761,16 +792,16 @@ function cotText(){
   const L = [`*Presupuesto Navarro Ache* — ${hoy()}`];
   if (cot.cliente) L.push(`Cliente: ${cot.cliente}`);
   L.push("");
-  for (const it of cot.items){ const c = lineCalc(it); if (!c || !c.q) continue;
+  for (const it of todos()){ const c = lineCalc(it); if (!c || !c.q) continue;
     L.push(`• ${c.p.nombre}${c.p.of?` (OFERTA -${fmt(c.p.of.pct,1)}%)`:""}`);
-    if (c.unit) L.push(`  ${fmt(c.n,0)} u. × ${money(c.price)} = ${money(c.sub)}`);
+    if (c.unit) L.push(`  ${fmt(c.n,0)} ${/^(disc-)?weber/.test(norm(c.p.nombre))?(c.n===1?"bolsa":"bolsas"):"u."} × ${money(c.price)} = ${money(c.sub)}`);
     else if (c.cajas==null) L.push(`  ${fmt(c.m2)} m² × ${money(c.price)} = ${money(c.sub)}`);
     else L.push(`  ${fmt(c.cajas,0)} cajas (${fmt(c.m2)} m²) × ${money(c.pc)} = ${money(c.sub)}`);
   }
   const base = cotBase(), tot = cotTotal();
   L.push("", `Forma de pago: ${PAGOS[cot.pago]}`);
   if (tot!==base) L.push(`Subtotal: ${money(base)}`, `${tot>base?"Recargo":"Descuento"} ${cot.pago==="t3"?"15%":cot.pago==="t6"?"25%":"5%"}: ${money(Math.abs(r2(tot-base)))}`);
-  if (cot.desc5 && puedeDesc5() && cot.items.some(it=>{const c=lineCalc(it);return c&&c.q&&c.p.of;})) L.push(`(Los productos en oferta no tienen el 5% adicional)`);
+  if (cot.desc5 && puedeDesc5() && todos().some(it=>{const c=lineCalc(it);return c&&c.q&&c.p.of;})) L.push(`(Los productos en oferta no tienen el 5% adicional)`);
   L.push(`*TOTAL: ${money(tot)}*`);
   if (cuotasTxt()) L.push(`*${cuotasTxt()}*`);
   L.push("", `Precios vigentes al ${hoy()}, sujetos a modificación y a disponibilidad de stock.`);
@@ -827,12 +858,14 @@ function openCot(focusCode){
     return `<div class="ci"><div class="t">${esc(p?p.nombre:it.code)}</div>
       <div class="r"><input inputmode="decimal" data-i="${i}" value="${esc(it.q||"")}" placeholder="0"><span>${p&&p.unit?"unidades":"m²"}</span>
       <button class="x" data-del="${i}">Quitar</button></div>
-      <div class="calc" id="calc${i}">${calcHtml(c)}</div></div>`; }).join("");
+      <div class="calc" id="calc${i}">${calcHtml(c)}</div>
+      ${p && !p.unit ? `<div class="pegw" id="peg${i}"></div>` : ""}</div>`; }).join("");
   openModal(`<h2>🧾 Cotización</h2><div class="mut" id="cRes" style="font-size:13px;margin:-4px 0 6px"></div>
     <div class="cf"><input class="full" id="cCli" placeholder="Nombre del cliente" value="${esc(cot.cliente)}">
       <input id="cTel" inputmode="tel" placeholder="Teléfono (ej. 11 2345 6789)" value="${esc(cot.tel)}">
       <input id="cVend" placeholder="Atendido por" value="${esc(cot.vend)}"></div>
     ${items || `<p class="mut">Todavía no agregaste productos. Tocá “+ Cotizar” en un producto.</p>`}
+    <div id="cVirt"></div>
     ${cot.items.some(it=>{const c=lineCalc(it);return c&&!c.unit&&c.cajas!=null;})?`<label class="chk"><input type="checkbox" id="cDesp" ${cot.desp?"checked":""}> Agregar 10% por cortes y desperdicio</label>`:""}
     <div class="orgt" style="margin-top:14px">Forma de pago</div>
     <div class="pagos">${Object.entries(PAGOS).map(([k,v])=>`<button class="pg${cot.pago===k?" on":""}" data-pg="${k}">${v}${k==="t3"?"<small>+15%</small>":k==="t6"?"<small>+25%</small>":""}</button>`).join("")}</div>
@@ -842,7 +875,17 @@ function openCot(focusCode){
     <div class="row"><a class="btn wa" id="cWa" target="_blank" rel="noopener">Enviar por WhatsApp</a></div>
     <div class="row"><button class="btn sec" id="cMore">+ Agregar productos</button><button class="btn sec" id="cClear">Vaciar</button></div>
     <div id="cMsg"></div>`);
-  const refresh = ()=>{ cot.items.forEach((it,i)=>{ const el = $("#calc"+i); if (el) el.innerHTML = calcHtml(lineCalc(it)); });
+  const pegHtml = (it,i)=>{ const pc = pegCalc(it); if (!pc) return "";
+    const nom = pc.peg ? pc.peg.nombre : (pc.tipo==="porc"?"Weber Pro Porcellanatos":"Weber Basic");
+    return `<label class="chk pegc"><input type="checkbox" data-peg="${i}" ${it.peg?"checked":""}> Agregar pegamento: <b>${pc.bolsas||"–"} ${pc.bolsas===1?"bolsa":"bolsas"}</b> ${esc(nom)}</label>
+      <div class="pegs">Es <b>${PEG[pc.tipo].txt}</b> (1 bolsa cada ${M2_POR_BOLSA} m²) · <a href="#" data-tipo="${i}">cambiar a ${pc.tipo==="porc"?"cerámica":"porcelanato"}</a>${!pc.peg?` · <span class="warn">ese pegamento no figura en el stock de hoy</span>`:""}</div>`; };
+  const virtHtml = ()=>{ const v = virtuales(); if (!v.length) return "";
+    return `<div class="orgt" style="margin-top:12px">Pegamento calculado</div>` + v.map(it=>{ const c = lineCalc(it);
+      return `<div class="ci virt"><div class="t">${esc(c?c.p.nombre:it.code)}</div><div class="calc">${c?calcHtml(c):`<span class="warn">No figura en el stock de hoy.</span>`}</div></div>`; }).join(""); };
+  const bindPeg = ()=>{ $("#sheet").querySelectorAll("[data-peg]").forEach(cb=> cb.onchange = ()=>{ cot.items[+cb.dataset.peg].peg = cb.checked; refresh(); });
+    $("#sheet").querySelectorAll("[data-tipo]").forEach(a=> a.onclick = e=>{ e.preventDefault(); const it = cot.items[+a.dataset.tipo]; const pc = pegCalc(it); it.tipo = pc.tipo==="porc"?"cer":"porc"; refresh(); }); };
+  const refresh = ()=>{ cot.items.forEach((it,i)=>{ const el = $("#calc"+i); if (el) el.innerHTML = calcHtml(lineCalc(it)); const pe = $("#peg"+i); if (pe) pe.innerHTML = pegHtml(it,i); });
+    $("#cVirt").innerHTML = virtHtml(); bindPeg();
     if (!puedeDesc5()) cot.desc5 = false;
     $("#cD5w").style.display = puedeDesc5() ? "flex" : "none"; $("#cD5").checked = cot.desc5;
     $("#cTot").innerHTML = totHtml(); const n = waNum(cot.tel);
@@ -850,7 +893,7 @@ function openCot(focusCode){
     $("#cWa").textContent = n ? `Enviar por WhatsApp a ${cot.tel.trim()}` : "Enviar por WhatsApp (elegís el contacto)";
     $("#cRes").innerHTML = `${hoy()}${cot.cliente?` · Cliente: <b>${esc(cot.cliente)}</b>`:""}${cot.vend?` · Atendido por: <b>${esc(cot.vend)}</b>`:""} · ${PAGOS[cot.pago]}`;
     saveCot(); };
-  $("#cWa").onclick = e=>{ if (!cot.items.some(it=>{const c=lineCalc(it);return c&&c.q;})){ e.preventDefault(); $("#cMsg").innerHTML = `<p class="err">Poné la cantidad de al menos un producto.</p>`; } };
+  $("#cWa").onclick = e=>{ if (!todos().some(it=>{const c=lineCalc(it);return c&&c.q;})){ e.preventDefault(); $("#cMsg").innerHTML = `<p class="err">Poné la cantidad de al menos un producto.</p>`; } };
   $("#sheet").querySelectorAll("input[data-i]").forEach(inp=> inp.oninput = ()=>{ cot.items[+inp.dataset.i].q = inp.value; refresh(); });
   $("#sheet").querySelectorAll("[data-del]").forEach(b=> b.onclick = ()=>{ cot.items.splice(+b.dataset.del,1); saveCot(); render(); openCot(); });
   $("#cCli").oninput = e=>{ cot.cliente = e.target.value; refresh(); };
