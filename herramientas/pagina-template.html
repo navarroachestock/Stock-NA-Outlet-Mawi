@@ -180,8 +180,8 @@ h1 span{color:var(--accent)}
 .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
 mark{background:transparent;color:var(--accent);font-weight:800}
 .medw{display:flex;align-items:center;gap:8px;margin-top:8px}
-.medw label{font-size:13px;font-weight:700;color:var(--muted)}
-.medw select{flex:1;font-size:15px;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
+.medw select.on{border-color:var(--ink);font-weight:700}
+.medw select{flex:1;min-width:0;font-size:15px;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
 .medw button{border:0;background:var(--chip);color:var(--ink);border-radius:50%;width:32px;height:32px;font-size:18px}
 </style>
 </head>
@@ -204,9 +204,9 @@ mark{background:transparent;color:var(--accent);font-weight:800}
       <button class="chip" data-f="mega">Dep Mega</button>
     </div>
     <div class="cats">
-      <button class="cat on" data-c="all">Todas</button><button class="cat c-ofe" data-c="ofe">🏷️ Ofertas</button><button class="cat" data-c="piso">Porcelanatos y cerámicos</button><button class="cat" data-c="acomp">Acompañamiento</button><button class="cat" data-c="grif">Grifería</button><button class="cat" data-c="sani">Sanitarios</button><button class="cat" data-c="ins">Insumos</button><button class="cat" data-c="otros">Otros</button><button class="cat c-merc" data-c="merc">📦 Mercadería a recibir</button>
+      <button class="cat on" data-c="all">Todas</button><button class="cat c-ofe" data-c="ofe">🏷️ Ofertas</button><button class="cat c-merc" data-c="merc">📦 Mercadería a recibir</button>
     </div>
-    <div class="medw"><label for="med">Medida</label><select id="med"><option value="all">Todas las medidas</option></select><button id="medClr" style="display:none">×</button></div>
+    <div class="medw"><select id="mar" aria-label="Marca"><option value="all">Todas las marcas</option></select><select id="med" aria-label="Medida"><option value="all">Todas las medidas</option></select><button id="medClr" style="display:none" aria-label="Borrar marca y medida">×</button></div>
   </header>
   <button id="novBtn" class="nov" style="display:none"></button>
   <div id="banner"></div>
@@ -290,7 +290,10 @@ function medida(nombre){
   const [x,y] = a<=b ? [a,b] : [b,a];
   return {k: f(x)+"x"+f(y), area: x*y, alt: [f(a)+"x"+f(b), f(b)+"x"+f(a), String(a)+"x"+String(b), String(b)+"x"+String(a)]};
 }
-let med = "all";
+let med = "all", mar = "all";
+// Nombre de marca prolijo (el Excel la trae cortada)
+const MARCAS = {"LUME CERAMICA L":"LM (Lume)","QUEIJA. PEIRANO":"Peirano","SAINT GOBAIN":"Weber","KARINA PISOS E":"Karina","GABRIELLA REVES":"Gabriella","PIAZZA HIDROSAN":"Piazza","JOHNSON ACEROS":"Johnson","PRINGLES SAN LU":"Pringles San Luis","BEIJING RIVERLA":"Beijing","HOME NAVARRO AC":"Home Navarro Ache","CERAMICAS ACUAR":"Acuarela","LAVAICA CERAMIC":"Lavaica","MOSAICOS KRYSTA":"Mosaicos Krystal","ROCA VIEJO":"Roca","AB ABRASIVOS SR":"AB Abrasivos","SAN LZO":"San Lorenzo","INSUMOS":"Insumos internos","ADMINISTRACION":"Administración","RGO VISION SRL":"RGO Vision","CGPACHECO":"CG Pacheco","FV":"FV","SPL":"SPL"};
+function marcaN(m){ m = String(m||"").trim(); if (!m) return ""; if (MARCAS[m.toUpperCase()]) return MARCAS[m.toUpperCase()]; return m.toLowerCase().replace(/(^|[\s.])([a-záéíóúñ])/g,(x,a,b)=>a+b.toUpperCase()); }
 const POCAS = p => p.unit ? 2 : 5;   // "últimas": hasta 5 cajas o 2 unidades en tu local
 const CHUNK = 450;          // filas por documento
 const MAX_SHOW = 50;        // resultados visibles
@@ -371,7 +374,7 @@ function buildProducts(){
     p.cambio = nov && nov.precios ? nov.precios.find(x=>x.c===p.codigo) || null : null;
     const lc = p.locs.filter(l=>l.rank===0).reduce((a,l)=>a+(l.cajas||0),0);
     p.ultimas = lc>0 && lc<=POCAS(p) ? lc : 0;
-    const md = medida(p.nombre); p.med = md ? md.k : null; p.area = md ? md.area : 0;
+    const md = medida(p.nombre); p.med = md ? md.k : null; p.area = md ? md.area : 0; p.mar = marcaN(p.marca);
     p.s = norm([p.nombre, p.codigo, p.marca, p.of?"oferta ofertas":"", p.nuevo?"nuevo nuevos":"", md?md.alt.join(" "):""].join(" ")) + " " + norm(p.nombre).replace(/[.,]/g,"");
   }
 }
@@ -449,13 +452,14 @@ function render(){
   if (filter==="mega") res = res.filter(p => p.far);
   if (filter==="all") res = res.filter(p => p.any);
   if (med!=="all") res = res.filter(p => p.med===med);
+  if (mar!=="all") res = res.filter(p => p.mar===mar);
   if (cat==="ofe") res = res.filter(p => p.of);
   else if (cat!=="all") res = res.filter(p => p.cat===cat);
   res.sort((a,b)=> (b.local-a.local) || (b.any-a.any) || (a.disc-b.disc) || a.nombre.localeCompare(b.nombre,"es"));
   if (!res.length){ list.innerHTML = `<div class="hint">${q?`No encontré nada con “${esc(raw)}”.<br>Probá con menos palabras o solo la medida.`:"No hay productos con estos filtros."}</div>`; return; }
-  if (!q && cat==="acomp") res.sort((a,b)=> (acompRank(a)-acompRank(b)) || (a.disc-b.disc) || a.nombre.localeCompare(b.nombre,"es"));
+  if (!q && (cat==="acomp" || mar==="Weber")) res.sort((a,b)=> (acompRank(a)-acompRank(b)) || (a.disc-b.disc) || a.nombre.localeCompare(b.nombre,"es"));
   else if (!q) res.sort((a,b)=> cat==="ofe" ? (b.of.pct-a.of.pct) || a.nombre.localeCompare(b.nombre,"es") : (a.disc-b.disc) || a.nombre.replace(/^[.\s]+/,"").localeCompare(b.nombre.replace(/^[.\s]+/,""),"es"));
-  const label = (med!=="all" ? " · "+med : "") + (cat!=="all" ? " · "+CATS[cat] : "") + (filter==="local" ? " en tu local" : filter==="mega" ? " en Dep Mega" : filter==="dep" ? " en Depósito Mashwitz" : "");
+  const label = (mar!=="all" ? " · "+mar : "") + (med!=="all" ? " · "+med : "") + (cat!=="all" ? " · "+CATS[cat] : "") + (filter==="local" ? " en tu local" : filter==="mega" ? " en Dep Mega" : filter==="dep" ? " en Depósito Mashwitz" : "");
   const shown = res.slice(0,limit);
   list.innerHTML = `<div class="count">${res.length.toLocaleString("es-AR")} producto${res.length>1?"s":""}${label}${q?" para “"+esc(raw)+"”":""}</div>` + shown.map(p=>cardHtml(p,words)).join("")
     + (res.length>limit?`<div class="more">Mostrando ${limit} de ${res.length.toLocaleString("es-AR")}<br><button class="btn sec" id="moreBtn" style="margin-top:8px">Ver más</button></div>`:"");
@@ -669,7 +673,7 @@ function renderMerc(words, raw){
   if (!MERC) buildMerc();
   const list = $("#list");
   if (!EMB || !EMB.merc){ list.innerHTML = `<div class="hint">Todavía no se cargó la mercadería a recibir.</div>`; return; }
-  let res = MERC.filter(m => words.every(w => m.s.includes(w)) && (med==="all" || (medida(m.n)||{}).k===med));
+  let res = MERC.filter(m => words.every(w => m.s.includes(w)) && (med==="all" || (medida(m.n)||{}).k===med) && (mar==="all" || marcaN(m.marca)===mar));
   res.sort((a,b)=> (b.atrasada-a.atrasada) || ((a.f||"9999")<(b.f||"9999")?-1:(a.f||"9999")>(b.f||"9999")?1:0) || a.n.localeCompare(b.n,"es"));
   if (!res.length){ list.innerHTML = `<div class="hint">No hay mercadería a recibir${raw?` con “${esc(raw)}”`:""}.</div>`; return; }
   list.innerHTML = `<div class="count">${res.length} producto${res.length>1?"s":""} · 📦 Mercadería a recibir${raw?" para “"+esc(raw)+"”":""}</div>
@@ -702,13 +706,22 @@ function openNov(){
 }
 $("#novBtn").onclick = openNov;
 function fillMed(){
-  const c = new Map(); for (const p of products){ if (!p.med || !p.any) continue; const o = c.get(p.med)||{n:0,area:p.area}; o.n++; c.set(p.med,o); }
+  const c = new Map(); for (const p of products){ if (!p.med || !p.any || (mar!=="all" && p.mar!==mar)) continue; const o = c.get(p.med)||{n:0,area:p.area}; o.n++; c.set(p.med,o); }
   const opts = [...c.entries()].sort((a,b)=>a[1].area-b[1].area || a[0].localeCompare(b[0]));
   $("#med").innerHTML = `<option value="all">Todas las medidas</option>` + opts.map(([k,o])=>`<option value="${esc(k)}">${esc(k)} (${o.n})</option>`).join("");
+  if (med!=="all" && !c.has(med)) med = "all";
   $("#med").value = med;
 }
-$("#med").onchange = e=>{ med = e.target.value; $("#medClr").style.display = med==="all"?"none":"block"; limit = MAX_SHOW; render(); window.scrollTo(0,0); };
-$("#medClr").onclick = ()=>{ med = "all"; $("#med").value = "all"; $("#medClr").style.display = "none"; render(); };
+function fillMar(){
+  const c = new Map(); for (const p of products){ if (!p.mar || !p.any) continue; c.set(p.mar,(c.get(p.mar)||0)+1); }
+  const opts = [...c.entries()].sort((a,b)=>a[0].localeCompare(b[0],"es"));
+  $("#mar").innerHTML = `<option value="all">Todas las marcas</option>` + opts.map(([k,n])=>`<option value="${esc(k)}">${esc(k)} (${n})</option>`).join("");
+  $("#mar").value = mar;
+}
+function selUpd(){ $("#medClr").style.display = (med==="all" && mar==="all") ? "none" : "block"; $("#med").classList.toggle("on", med!=="all"); $("#mar").classList.toggle("on", mar!=="all"); limit = MAX_SHOW; render(); window.scrollTo(0,0); }
+$("#med").onchange = e=>{ med = e.target.value; selUpd(); };
+$("#mar").onchange = e=>{ mar = e.target.value; fillMed(); selUpd(); };
+$("#medClr").onclick = ()=>{ med = "all"; mar = "all"; $("#med").value = "all"; $("#mar").value = "all"; fillMed(); selUpd(); };
 
 /* ===== Cotización ===== */
 let cot = {items:[], cliente:"", tel:"", vend:"", desp:false, pago:"efe", desc5:false};
@@ -975,7 +988,7 @@ async function loadStock(m){
 function useEmbedded(){
   if (!EMB) return false;
   rows = EMB.rows; meta = {updatedAt: EMB.updatedAt, file: EMB.file};
-  buildProducts(); fillMed(); renderMeta(); render(); updCotBtn(); renderNov(); return true;
+  buildProducts(); fillMar(); fillMed(); renderMeta(); render(); updCotBtn(); renderNov(); return true;
 }
 (async ()=>{
   const hasEmb = useEmbedded();
